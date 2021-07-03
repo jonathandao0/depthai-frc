@@ -1,5 +1,6 @@
 import logging
 import math
+import time
 
 import cv2
 import numpy as np
@@ -10,27 +11,34 @@ from distance import DistanceCalculations, DistanceCalculationsDebug
 from field_constants import *
 from networktables import NetworkTables
 
+from utils import FPSHandler
+
 log = logging.getLogger(__name__)
 
 
 class Main:
     depthai_class = DepthAI
     distance_class = DistanceCalculations
+    fps = None
+
     network_tables = NetworkTables.initialize(server="localhost")
     smartdashboard = NetworkTables.getTable("Depthai")
+
 
     robot_pose = None
     has_targets = False
 
+
     def __init__(self):
         self.depthai = self.depthai_class(MODEL_NAME)
         self.distance = self.distance_class()
+        self.fps = FPSHandler()
 
         self.robot_pose = (FIELD_HEIGHT / 2, FIELD_WIDTH / 2, 0)
 
     def parse_frame(self, frame, results):
         distance_results = self.distance.parse_frame(frame, results)
-
+        self.fps.tick('frame')
         for result in results:
             self.has_targets = True
 
@@ -48,6 +56,7 @@ class Main:
             self.has_targets = False
 
         print("Robot Position: {}".format(self.robot_pose))
+        print("FPS: {}".format(self.fps.tick_fps('frame')))
         self.smartdashboard.putBoolean("has_targets", self.has_targets)
         self.smartdashboard.putNumberArray("robot_pose", to_wpilib_coords(self.robot_pose))
 
