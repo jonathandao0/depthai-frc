@@ -1,0 +1,7 @@
+imutils==0.5.4
+concurrent-log-handler==0.9.19
+opencv-python==4.5.2.54
+depthai==2.5.0.0
+blobconverter==0.0.10
+pynetworktables==2021.0.0
+numpy==1.21.0

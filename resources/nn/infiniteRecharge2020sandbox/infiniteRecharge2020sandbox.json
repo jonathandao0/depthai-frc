@@ -1,0 +1,34 @@
+{
+    "nn_config":
+    {
+        "output_format" : "detection",
+        "NN_family" : "YOLO",
+        "input_size": "416x416",
+        "NN_specific_metadata" :
+        {
+            "classes" : 6,
+            "coordinates" : 4,
+            "anchors" : [10,14, 23,27, 37,58, 81,82, 135,169, 344,319],
+            "anchor_masks" :
+            {
+                "side26" : [1,2,3],
+                "side13" : [3,4,5]
+            },
+            "iou_threshold" : 0.5,
+            "confidence_threshold" : 0.5
+        }
+    },
+    "mappings":
+    {
+        "labels":
+        [
+			"Blue_Lower_Power_Port",
+			"Blue_Upper_Power_Port",
+			"Power_Cell",
+			"Red_Loading_Station",
+			"Red_Lower_Power_Port",
+			"Red_Upper_Power_Port"
+        ]
+    }
+}
+
