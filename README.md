@@ -19,7 +19,7 @@ Run the program:
 
 
 ## Performance
-~26-27 FPS Running off a Raspbnerry Pi 4
+~26-27 FPS Running off a Raspberry Pi 4
 
 
 ## Future Improvements
