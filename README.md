@@ -6,17 +6,20 @@ Implementing full-field localization using vision and depth measurements for FRC
 * [OAK-D](https://store.opencv.ai/products/oak-d)
 * Raspberry Pi 4
 
-## To Run
-Install the requirements first:
 
+## To Run
+(Raspberry Pi Only) Follow The steps in the Luxonis documentation to install the base requirements:
+https://docs.luxonis.com/projects/api/en/latest/install/#raspberry-pi-os
+
+In the code directory, install the requirements:
 `python3 -m pip install -r requirements.txt`
 
 Run the program:
-
 `python3 main.py`
 
+
 ## Performance
-TBD
+~26-27 FPS Running off a Raspberry Pi 4
 
 
 ## Future Improvements
