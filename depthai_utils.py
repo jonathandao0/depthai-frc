@@ -50,16 +50,16 @@ class DepthAI:
         camRgb.setInterleaved(False)
         camRgb.setColorOrder(dai.ColorCameraProperties.ColorOrder.BGR)
 
-        monoLeft.setResolution(dai.MonoCameraProperties.SensorResolution.THE_400_P)
+        monoLeft.setResolution(dai.MonoCameraProperties.SensorResolution.THE_720_P)
         monoLeft.setBoardSocket(dai.CameraBoardSocket.LEFT)
-        monoRight.setResolution(dai.MonoCameraProperties.SensorResolution.THE_400_P)
+        monoRight.setResolution(dai.MonoCameraProperties.SensorResolution.THE_720_P)
         monoRight.setBoardSocket(dai.CameraBoardSocket.RIGHT)
 
         # Setting node configs
         # stereo.setOutputDepth(out_depth)
         # stereo.setOutputRectified(out_rectified)
         stereo.setConfidenceThreshold(255)
-        # stereo.setRectifyEdgeFillColor(0) # Black, to better see the cutout
+        stereo.setRectifyEdgeFillColor(0) # Black, to better see the cutout
         # stereo.setMedianFilter(median) # KERNEL_7x7 default
         # stereo.setLeftRightCheck(lrcheck)
         # stereo.setExtendedDisparity(extended)
@@ -146,10 +146,10 @@ class DepthAIDebug(DepthAI):
             self.fps.update()
             for detection in detections:
                 cv2.rectangle(frame, (detection['x_min'], detection['y_min']), (detection['x_max'], detection['y_max']), (0, 255, 0), 2)
-                cv2.putText(frame, "x: {}".format(round(detection['depth_x'], 1)), (detection['x_min'], detection['y_min'] + 30), cv2.FONT_HERSHEY_TRIPLEX, 0.5, (255, 255, 255))
-                cv2.putText(frame, "y: {}".format(round(detection['depth_y'], 1)), (detection['x_min'], detection['y_min'] + 50), cv2.FONT_HERSHEY_TRIPLEX, 0.5, (255, 255, 255))
-                cv2.putText(frame, "z: {}".format(round(detection['depth_z'], 1)), (detection['x_min'], detection['y_min'] + 70), cv2.FONT_HERSHEY_TRIPLEX, 0.5, (255, 255, 255))
-                cv2.putText(frame, "conf: {}".format(round(detection['confidence'], 1)), (detection['x_min'], detection['y_min'] + 90), cv2.FONT_HERSHEY_TRIPLEX, 0.5, (255, 255, 255))
+                cv2.putText(frame, "x: {}".format(round(detection['depth_x'], 2)), (detection['x_min'], detection['y_min'] + 30), cv2.FONT_HERSHEY_TRIPLEX, 0.5, (255, 255, 255))
+                cv2.putText(frame, "y: {}".format(round(detection['depth_y'], 2)), (detection['x_min'], detection['y_min'] + 50), cv2.FONT_HERSHEY_TRIPLEX, 0.5, (255, 255, 255))
+                cv2.putText(frame, "z: {}".format(round(detection['depth_z'], 2)), (detection['x_min'], detection['y_min'] + 70), cv2.FONT_HERSHEY_TRIPLEX, 0.5, (255, 255, 255))
+                cv2.putText(frame, "conf: {}".format(round(detection['confidence'], 2)), (detection['x_min'], detection['y_min'] + 90), cv2.FONT_HERSHEY_TRIPLEX, 0.5, (255, 255, 255))
                 cv2.putText(frame, "label: {}".format(self.labels[detection['label']], 1), (detection['x_min'], detection['y_min'] + 110), cv2.FONT_HERSHEY_TRIPLEX, 0.5, (255, 255, 255))
             yield frame, detections
 

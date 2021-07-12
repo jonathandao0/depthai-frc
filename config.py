@@ -2,6 +2,8 @@ import json
 import logging
 import os
 import sys
+
+import numpy as np
 from concurrent_log_handler import ConcurrentRotatingFileHandler
 
 root = logging.getLogger()
@@ -21,6 +23,7 @@ MODEL_NAME = "infiniteRecharge2020sandbox"
 NN_IMG_SIZE = 416
 DEBUG = os.getenv('DEBUG', 'true') not in ('false', '0')
 
+DETECTION_PADDING = 5
 
 class NNConfig:
     source_choices = ("color", "left", "right", "rectified_left", "rectified_right", "host")

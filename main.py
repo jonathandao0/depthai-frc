@@ -1,16 +1,16 @@
 import logging
-import math
-import time
 
 import cv2
 import numpy as np
 
-from config import MODEL_NAME, DEBUG, NN_IMG_SIZE
+from config import MODEL_NAME, DEBUG, NN_IMG_SIZE, DETECTION_PADDING
 from depthai_utils import DepthAI, DepthAIDebug
 from distance import DistanceCalculations, DistanceCalculationsDebug
 from field_constants import *
 from networktables import NetworkTables
 
+from process_image import homography_to_perspective_transform
+from camera_info import CAMERA_RGB
 from utils import FPSHandler
 
 log = logging.getLogger(__name__)
@@ -24,17 +24,39 @@ class Main:
     network_tables = NetworkTables.initialize(server="localhost")
     smartdashboard = NetworkTables.getTable("Depthai")
 
-
-    robot_pose = None
+    robot_pose3d = None
     has_targets = False
 
+    FLANN_INDEX_KDTREE = 1
+    index_params = dict(algorithm=FLANN_INDEX_KDTREE, trees=5)
+    search_params = dict(checks=50)
+
+    sift = cv2.SIFT_create()
+    flann = cv2.FlannBasedMatcher(index_params, search_params)
+
+    orb = cv2.ORB_create()
+    bf = cv2.BFMatcher(cv2.NORM_HAMMING, crossCheck=True)
 
     def __init__(self):
         self.depthai = self.depthai_class(MODEL_NAME)
         self.distance = self.distance_class()
         self.fps = FPSHandler()
 
-        self.robot_pose = (FIELD_HEIGHT / 2, FIELD_WIDTH / 2, 0)
+        self.robot_pose3d = [FIELD_HEIGHT / 2, FIELD_WIDTH / 2, 0, 0]
+
+        for name, landmark in LANDMARKS.items():
+            try:
+                img = cv2.imread("resources/images/{}.jpg".format(name))
+                # keypoints, descriptors = self.orb.detectAndCompute(img, None)
+                # landmark["orb_params"] = {
+                keypoints, descriptors = self.sift.detectAndCompute(img, None)
+                landmark["sift_params"] = {
+                    'image': img,
+                    'keypoints': keypoints,
+                    'descriptors': descriptors
+                }
+            except Exception:
+                pass
 
     def parse_frame(self, frame, results):
         distance_results = self.distance.parse_frame(frame, results)
@@ -43,22 +65,22 @@ class Main:
             self.has_targets = True
 
             if result['label'] == 5 or result['label'] == 4:
-                self.robot_pose = (RED_POWER_PORT[1] - result['depth_x'], RED_POWER_PORT[0] + result['depth_z'], RED_POWER_PORT[2] - 180)
+                self.robot_pose3d = LANDMARKS['red_upper_power_port_sandbox']['pose']
             elif result['label'] == 0 or result['label'] == 1:
-                self.robot_pose = (BLUE_POWER_PORT[1] - result['depth_x'], BLUE_POWER_PORT[0] - result['depth_z'], BLUE_POWER_PORT[2] - 180)
+                self.robot_pose3d = LANDMARKS['blue_upper_power_port_sandbox']['pose']
             elif result['label'] == 3:
-                self.robot_pose = (RED_LOADING_BAY[1] - result['depth_x'], RED_LOADING_BAY[0] - result['depth_z'], RED_LOADING_BAY[2] - 180)
+                self.robot_pose3d = LANDMARKS['red_loading_bay_sandbox']['pose']
             # if result['label'] == 6:
-            #     self.robot_position = (BLUE_LOADING_BAY[1] - result['depth_x'], BLUE_LOADING_BAY[0] - result['depth_z'], BLUE_LOADING_BAY[2] - 180))
+            #     self.robot_position = LANDMARKS['blue_loading_bay_sandbox']['pose']
 
         if len(results) == 0:
-            self.robot_pose = (-99, -99, 0)
+            self.robot_pose3d = (-99, -99, 0)
             self.has_targets = False
 
-        print("Robot Position: {}".format(self.robot_pose))
+        print("Robot Position: {}".format(self.robot_pose3d))
         print("FPS: {}".format(self.fps.tick_fps('frame')))
         self.smartdashboard.putBoolean("has_targets", self.has_targets)
-        self.smartdashboard.putNumberArray("robot_pose", to_wpilib_coords(self.robot_pose))
+        self.smartdashboard.putNumberArray("robot_pose", to_wpilib_coords(self.robot_pose3d))
 
         return distance_results
 
@@ -105,18 +127,18 @@ class MainDebug(Main):
 
         self.scaled_values = (width / FIELD_WIDTH, height / FIELD_HEIGHT)
 
-        red_power_port = tuple(int(l * r) for l, r in zip(self.scaled_values, RED_POWER_PORT))
-        blue_power_port = tuple(int(l * r) for l, r in zip(self.scaled_values, BLUE_POWER_PORT))
-        red_loading_bay = tuple(int(l * r) for l, r in zip(self.scaled_values, RED_LOADING_BAY))
-        blue_loading_bay = tuple(int(l * r) for l, r in zip(self.scaled_values, BLUE_LOADING_BAY))
+        red_power_port = pose3d_to_frame_position(LANDMARKS['red_upper_power_port_sandbox']['pose'], self.scaled_values)
+        blue_power_port = pose3d_to_frame_position(LANDMARKS['blue_upper_power_port_sandbox']['pose'], self.scaled_values)
+        red_loading_bay = pose3d_to_frame_position(LANDMARKS['red_loading_bay']['pose'], self.scaled_values)
+        blue_loading_bay = pose3d_to_frame_position(LANDMARKS['blue_loading_bay']['pose'], self.scaled_values)
 
-        red_station_1 = tuple(int(l * r) for l, r in zip(self.scaled_values, RED_STATION_1))
-        red_station_2 = tuple(int(l * r) for l, r in zip(self.scaled_values, RED_STATION_2))
-        red_station_3 = tuple(int(l * r) for l, r in zip(self.scaled_values, RED_STATION_3))
+        red_station_1 = pose3d_to_frame_position(LANDMARKS['red_station_1']['pose'], self.scaled_values)
+        red_station_2 = pose3d_to_frame_position(LANDMARKS['red_station_2']['pose'], self.scaled_values)
+        red_station_3 = pose3d_to_frame_position(LANDMARKS['red_station_3']['pose'], self.scaled_values)
 
-        blue_station_1 = tuple(int(l * r) for l, r in zip(self.scaled_values, BLUE_STATION_1))
-        blue_station_2 = tuple(int(l * r) for l, r in zip(self.scaled_values, BLUE_STATION_2))
-        blue_station_3 = tuple(int(l * r) for l, r in zip(self.scaled_values, BLUE_STATION_3))
+        blue_station_1 = pose3d_to_frame_position(LANDMARKS['blue_station_1']['pose'], self.scaled_values)
+        blue_station_2 = pose3d_to_frame_position(LANDMARKS['blue_station_2']['pose'], self.scaled_values)
+        blue_station_3 = pose3d_to_frame_position(LANDMARKS['blue_station_3']['pose'], self.scaled_values)
 
         cv2.circle(frame, red_power_port, 5, (0, 0, 255))
         cv2.circle(frame, blue_power_port, 5, (255, 0, 0))
@@ -148,11 +170,12 @@ class MainDebug(Main):
         return int(bottom_z), int(top_z)
 
     def draw_robot(self, frame):
-        r_t, r_l, r_b, r_r = robot_position_to_frame_coords(tuple(self.robot_pose[:2]))
-        r_left_top = (tuple(int(l * r) for l, r in zip(self.scaled_values, (r_l, r_t))))
-        r_right_bottom = tuple(int(l * r) for l, r in zip(self.scaled_values, (r_r, r_b)))
+        try:
+            r_left_top, r_right_bottom = robot_pose_to_frame_position(self.robot_pose3d, self.scaled_values)
 
-        cv2.rectangle(frame, r_left_top, r_right_bottom, (0, 255, 0), -1)
+            cv2.rectangle(frame, r_left_top, r_right_bottom, (0, 255, 0), -1)
+        except Exception:
+            pass
 
     def parse_frame(self, frame, results):
         distance_results = super().parse_frame(frame, results)
@@ -170,10 +193,107 @@ class MainDebug(Main):
                 cv2.rectangle(field_frame, (left, top), (right, bottom), (0, 0, 255), 2)
                 too_close_ids.append(result['detection2']['id'])
 
+        for result in results:
+            x1 = 0 if result['x_min'] - DETECTION_PADDING < 0 else result['x_min'] - DETECTION_PADDING
+            x2 = NN_IMG_SIZE if result['x_max'] + DETECTION_PADDING < NN_IMG_SIZE \
+                else result['x_max'] + DETECTION_PADDING
+            y1 = 0 if result['y_min'] - DETECTION_PADDING < 0 else result['y_min'] - DETECTION_PADDING
+            y2 = NN_IMG_SIZE if result['y_max'] + DETECTION_PADDING < NN_IMG_SIZE \
+                else result['y_max'] + DETECTION_PADDING
+
+            cropped_frame = frame[y1:y2, x1:x2]
+
+            if result['label'] == 5:
+                detection_params = LANDMARKS['red_upper_power_port_sandbox']['sift_params']
+                source_keypoints = detection_params['keypoints']
+                target_keypoints, target_descriptors = self.sift.detectAndCompute(cropped_frame, None)
+                matches = self.flann.knnMatch(detection_params['descriptors'], target_descriptors, k=2)
+
+                good_matches = []
+
+                for m, n in matches:
+                    if m.distance < 0.7 * n.distance:
+                        good_matches.append(m)
+
+                # detection_params = LANDMARKS['red_upper_power_port_sandbox']['orb_params']
+                # source_keypoints = orb_params['keypoints']
+                # target_keypoints, target_descriptors = self.orb.detectAndCompute(cropped_frame, None)
+                # matches = self.bf.match(orb_params['descriptors'], target_descriptors)
+                #
+                # good_matches = sorted(matches, key=lambda x: x.distance)
+
+                if len(good_matches) > 10:
+                    try:
+                        src_pts = np.float32([source_keypoints[m.queryIdx].pt for m in good_matches]).reshape(-1, 1, 2)
+                        dst_pts = np.float32([target_keypoints[m.trainIdx].pt for m in good_matches]).reshape(-1, 1, 2)
+
+                        M, mask = cv2.findHomography(src_pts, dst_pts, cv2.RANSAC, 5.0)
+
+                        corner_camera_coord, object_points_3d, center_pts = homography_to_perspective_transform(detection_params['image'].shape, M)
+
+                        corner_camera_coord = corner_camera_coord.reshape(-1, 2)
+                        # solve pnp using iterative LMA algorithm
+                        retval, rotation_rad, translation = cv2.solvePnP(object_points_3d, corner_camera_coord,
+                                                                             CAMERA_RGB['intrinsicMatrix'],
+                                                                             CAMERA_RGB['distortionCoeff'])
+
+
+
+                        H = M
+                        K = CAMERA_RGB['intrinsicMatrix']
+                        h1 = H[0]
+                        h2 = H[1]
+                        h3 = H[2]
+                        K_inv = np.linalg.inv(K)
+                        L = 1 / np.linalg.norm(np.dot(K_inv, h1))
+                        r1 = L * np.dot(K_inv, h1)
+                        r2 = L * np.dot(K_inv, h2)
+                        r3 = np.cross(r1, r2)
+                        T = L * (K_inv @ h3.reshape(3, 1))
+                        R = np.array([[r1], [r2], [r3]])
+                        R = np.reshape(R, (3, 3))
+
+                        print("X: {}\tY: {}\tZ: {}".format(T[0], T[1], T[2]))
+                        matchesMask = mask.ravel().tolist()
+                        img1 = detection_params['image'].copy()
+                        h, w, d = img1.shape
+
+                        ppm = (x2 - x1) / LANDMARKS['red_upper_power_port_sandbox']['width']
+
+                        translation = ppm * translation
+                        rotation_deg = 57.2958 * rotation_rad
+
+                        self.robot_pose3d = (translation[0].item(), translation[1].item(), result['depth_z'], 0)
+                        pts = np.float32([[0, 0], [0, h - 1], [w - 1, h - 1], [w - 1, 0]]).reshape(-1, 1, 2)
+                        dst = cv2.perspectiveTransform(pts, M)
+                        img2 = cv2.polylines(cropped_frame, [np.int32(dst)], True, 255, 3, cv2.LINE_AA)
+
+                        draw_params = dict(matchColor=(0, 255, 0),  # draw matches in green color
+                                           singlePointColor=None,
+                                           matchesMask=matchesMask,  # draw only inliers
+                                           flags=2)
+                        cv2.putText(img1, "x: {}".format(translation[0].round(2)), (0, 30), cv2.FONT_HERSHEY_TRIPLEX, 0.5, (255, 255, 255))
+                        cv2.putText(img1, "y: {}".format(translation[1].round(2)), (0, 50), cv2.FONT_HERSHEY_TRIPLEX, 0.5, (255, 255, 255))
+                        cv2.putText(img1, "z: {}".format(round(result['depth_z'], 2)), (0, 70), cv2.FONT_HERSHEY_TRIPLEX, 0.5, (255, 255, 255))
+                        cv2.putText(img1, "r: {}".format(rotation_deg[0].round(2)), (0, 90), cv2.FONT_HERSHEY_TRIPLEX, 0.5, (255, 255, 255))
+                        img3 = cv2.drawMatches(img1, source_keypoints, img2, target_keypoints, good_matches, None, **draw_params)
+                        cv2.imshow("Ransac", img3)
+                    except Exception:
+                        pass
+
         self.draw_robot(field_frame)
 
         cv2.imshow("Field", field_frame)
         cv2.imshow("Frame", frame)
+
+        # streams = self.depthai_class.get_pipeline_streams(self)
+        # for stream in streams:
+        #     name = stream.getName()
+        #
+        #     if name == 'depth' or name == 'disparity':
+        #         image = stream.get()
+        #         frame = self.depthai_class.convert_to_cv2_frame(name, image)
+        #         cv2.imshow(name, frame)
 
         key = cv2.waitKey(1)
 
@@ -182,9 +302,9 @@ class MainDebug(Main):
 
 
 if __name__ == '__main__':
-    # if DEBUG:
-    #     log.info("Setting up debug run...")
-    #     MainDebug().run()
-    # else:
+    if DEBUG:
+        log.info("Setting up debug run...")
+        MainDebug().run()
+    else:
         log.info("Setting up non-debug run...")
         Main().run()
