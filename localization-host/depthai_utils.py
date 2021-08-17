@@ -7,161 +7,218 @@ import depthai as dai
 from common.config import *
 from imutils.video import FPS
 
+from common.feature_tracker import FeatureTrackerDebug, FeatureTracker
+from common.image_processing import SIFT_PARAMS
+
 log = logging.getLogger(__name__)
 
-
-class DepthAI:
-    nn_config = None
-    labels = None
-
-    frames = None
-
-    def create_pipeline(self, model_name):
-        log.info("Creating DepthAI pipeline...")
-
-        # out_depth = False  # Disparity by default
-        # out_rectified = True  # Output and display rectified streams
-        # lrcheck = True  # Better handling for occlusions
-        # extended = False  # Closer-in minimum depth, disparity range is doubled
-        # subpixel = True  # Better accuracy for longer distance, fractional disparity 32-levels
-        # # Options: MEDIAN_OFF, KERNEL_3x3, KERNEL_5x5, KERNEL_7x7
-        # median = dai.StereoDepthProperties.MedianFilter.KERNEL_7x7
-
-        pipeline = dai.Pipeline()
-        pipeline.setOpenVINOVersion(dai.OpenVINO.Version.VERSION_2021_2)
-
-        # Define sources and outputs
-        camRgb = pipeline.createColorCamera()
-        spatialDetectionNetwork = pipeline.createYoloSpatialDetectionNetwork()
-        monoLeft = pipeline.createMonoCamera()
-        monoRight = pipeline.createMonoCamera()
-        stereo = pipeline.createStereoDepth()
-
-        xoutRgb = pipeline.createXLinkOut()
-        camRgb.preview.link(xoutRgb.input)
-        xoutNN = pipeline.createXLinkOut()
+LABELS = []
 
 
-        # Properties
-        camRgb.setPreviewSize(NN_IMG_SIZE, NN_IMG_SIZE)
-        camRgb.setResolution(dai.ColorCameraProperties.SensorResolution.THE_1080_P)
-        camRgb.setInterleaved(False)
-        camRgb.setColorOrder(dai.ColorCameraProperties.ColorOrder.BGR)
+def create_pipeline(model_name):
+    global pipeline
+    global LABELS
+    log.info("Creating DepthAI pipeline...")
 
-        monoLeft.setResolution(dai.MonoCameraProperties.SensorResolution.THE_720_P)
-        monoLeft.setBoardSocket(dai.CameraBoardSocket.LEFT)
-        monoRight.setResolution(dai.MonoCameraProperties.SensorResolution.THE_720_P)
-        monoRight.setBoardSocket(dai.CameraBoardSocket.RIGHT)
+    # out_depth = False  # Disparity by default
+    # out_rectified = True  # Output and display rectified streams
+    # lrcheck = True  # Better handling for occlusions
+    # extended = False  # Closer-in minimum depth, disparity range is doubled
+    # subpixel = True  # Better accuracy for longer distance, fractional disparity 32-levels
+    # # Options: MEDIAN_OFF, KERNEL_3x3, KERNEL_5x5, KERNEL_7x7
+    # median = dai.StereoDepthProperties.MedianFilter.KERNEL_7x7
 
-        # Setting node configs
-        # stereo.setOutputDepth(out_depth)
-        # stereo.setOutputRectified(out_rectified)
-        stereo.setConfidenceThreshold(255)
-        stereo.setRectifyEdgeFillColor(0) # Black, to better see the cutout
-        # stereo.setMedianFilter(median) # KERNEL_7x7 default
-        # stereo.setLeftRightCheck(lrcheck)
-        # stereo.setExtendedDisparity(extended)
-        # stereo.setSubpixel(subpixel)
+    pipeline = dai.Pipeline()
+    pipeline.setOpenVINOVersion(dai.OpenVINO.Version.VERSION_2021_2)
 
-        model_dir = Path(__file__).parent.parent / Path(f"resources/nn/") / model_name
-        blob_path = model_dir / Path(model_name).with_suffix(f".blob")
+    # Define sources and outputs
+    camRgb = pipeline.createColorCamera()
+    spatialDetectionNetwork = pipeline.createYoloSpatialDetectionNetwork()
+    monoLeft = pipeline.createMonoCamera()
+    monoRight = pipeline.createMonoCamera()
+    featureTrackerLeft = pipeline.createFeatureTracker()
+    featureTrackerRight = pipeline.createFeatureTracker()
+    stereo = pipeline.createStereoDepth()
 
-        config_path = model_dir / Path(model_name).with_suffix(f".json")
-        self.nn_config = NNConfig(config_path)
-        self.labels = self.nn_config.labels
+    xoutRgb = pipeline.createXLinkOut()
+    camRgb.preview.link(xoutRgb.input)
+    xoutNN = pipeline.createXLinkOut()
+    xoutPassthroughFrameLeft = pipeline.createXLinkOut()
+    xoutTrackedFeaturesLeft = pipeline.createXLinkOut()
+    xoutPassthroughFrameRight = pipeline.createXLinkOut()
+    xoutTrackedFeaturesRight = pipeline.createXLinkOut()
+    xinTrackedFeaturesConfig = pipeline.createXLinkIn()
 
-        spatialDetectionNetwork.setBlobPath(str(blob_path))
-        spatialDetectionNetwork.setConfidenceThreshold(self.nn_config.confidence)
-        spatialDetectionNetwork.setNumClasses(self.nn_config.metadata["classes"])
-        spatialDetectionNetwork.setCoordinateSize(self.nn_config.metadata["coordinates"])
-        spatialDetectionNetwork.setAnchors(self.nn_config.metadata["anchors"])
-        spatialDetectionNetwork.setAnchorMasks(self.nn_config.metadata["anchor_masks"])
-        spatialDetectionNetwork.setIouThreshold(self.nn_config.metadata["iou_threshold"])
-        spatialDetectionNetwork.input.setBlocking(False)
-        spatialDetectionNetwork.setBoundingBoxScaleFactor(0.5)
-        spatialDetectionNetwork.setDepthLowerThreshold(100)
-        spatialDetectionNetwork.setDepthUpperThreshold(5000)
+    # Properties
+    camRgb.setPreviewSize(NN_IMG_SIZE, NN_IMG_SIZE)
+    camRgb.setResolution(dai.ColorCameraProperties.SensorResolution.THE_1080_P)
+    camRgb.setInterleaved(False)
+    camRgb.setColorOrder(dai.ColorCameraProperties.ColorOrder.BGR)
 
-        xoutRgb.setStreamName("rgb")
-        xoutNN.setStreamName("detections")
+    xoutPassthroughFrameLeft.setStreamName("passthroughFrameLeft")
+    xoutTrackedFeaturesLeft.setStreamName("trackedFeaturesLeft")
+    xoutPassthroughFrameRight.setStreamName("passthroughFrameRight")
+    xoutTrackedFeaturesRight.setStreamName("trackedFeaturesRight")
+    xinTrackedFeaturesConfig.setStreamName("trackedFeaturesConfig")
 
-        # Linking
-        monoLeft.out.link(stereo.left)
-        monoRight.out.link(stereo.right)
+    monoLeft.setResolution(dai.MonoCameraProperties.SensorResolution.THE_720_P)
+    monoLeft.setBoardSocket(dai.CameraBoardSocket.LEFT)
+    monoRight.setResolution(dai.MonoCameraProperties.SensorResolution.THE_720_P)
+    monoRight.setBoardSocket(dai.CameraBoardSocket.RIGHT)
 
-        camRgb.preview.link(spatialDetectionNetwork.input)
+    # Setting node configs
+    # stereo.setOutputDepth(out_depth)
+    # stereo.setOutputRectified(out_rectified)
+    stereo.setConfidenceThreshold(255)
+    stereo.setRectifyEdgeFillColor(0) # Black, to better see the cutout
+    # stereo.setMedianFilter(median) # KERNEL_7x7 default
+    # stereo.setLeftRightCheck(lrcheck)
+    # stereo.setExtendedDisparity(extended)
+    # stereo.setSubpixel(subpixel)
 
-        spatialDetectionNetwork.out.link(xoutNN.input)
-        stereo.depth.link(spatialDetectionNetwork.inputDepth)
-        log.info("Pipeline created.")
-        return pipeline
+    model_dir = Path(__file__).parent.parent / Path(f"resources/nn/") / model_name
+    blob_path = model_dir / Path(model_name).with_suffix(f".blob")
 
-    def __init__(self, model_name):
-        self.pipeline = self.create_pipeline(model_name)
-        self.detections = []
+    config_path = model_dir / Path(model_name).with_suffix(f".json")
+    nn_config = NNConfig(config_path)
+    LABELS = nn_config.labels
 
-        self.depth_frame = None
-        self.disparity_frame = None
+    spatialDetectionNetwork.setBlobPath(str(blob_path))
+    spatialDetectionNetwork.setConfidenceThreshold(nn_config.confidence)
+    spatialDetectionNetwork.setNumClasses(nn_config.metadata["classes"])
+    spatialDetectionNetwork.setCoordinateSize(nn_config.metadata["coordinates"])
+    spatialDetectionNetwork.setAnchors(nn_config.metadata["anchors"])
+    spatialDetectionNetwork.setAnchorMasks(nn_config.metadata["anchor_masks"])
+    spatialDetectionNetwork.setIouThreshold(nn_config.metadata["iou_threshold"])
+    spatialDetectionNetwork.input.setBlocking(False)
+    spatialDetectionNetwork.setBoundingBoxScaleFactor(0.5)
+    spatialDetectionNetwork.setDepthLowerThreshold(100)
+    spatialDetectionNetwork.setDepthUpperThreshold(50000)
 
-    def capture(self):
-        with dai.Device(self.pipeline) as device:
-            previewQueue = device.getOutputQueue(name="rgb", maxSize=4, blocking=False)
-            detectionNNQueue = device.getOutputQueue(name="detections", maxSize=4, blocking=False)
+    xoutRgb.setStreamName("rgb")
+    xoutNN.setStreamName("detections")
 
-            while True:
-                frame = previewQueue.get().getCvFrame()
-                inDet = detectionNNQueue.tryGet()
+    # Linking
+    monoLeft.out.link(stereo.left)
+    monoRight.out.link(stereo.right)
 
-                if inDet is not None:
-                    self.detections = inDet.detections
+    monoLeft.out.link(featureTrackerLeft.inputImage)
+    featureTrackerLeft.passthroughInputImage.link(xoutPassthroughFrameLeft.input)
+    featureTrackerLeft.outputFeatures.link(xoutTrackedFeaturesLeft.input)
+    xinTrackedFeaturesConfig.out.link(featureTrackerLeft.inputConfig)
 
-                bboxes = []
-                height = frame.shape[0]
-                width  = frame.shape[1]
-                for detection in self.detections:
-                    bboxes.append({
-                        'id': uuid.uuid4(),
-                        'label': detection.label,
-                        'confidence': detection.confidence,
-                        'x_min': int(detection.xmin * width),
-                        'x_max': int(detection.xmax * width),
-                        'y_min': int(detection.ymin * height),
-                        'y_max': int(detection.ymax * height),
-                        'depth_x': detection.spatialCoordinates.x / 1000,
-                        'depth_y': detection.spatialCoordinates.y / 1000,
-                        'depth_z': detection.spatialCoordinates.z / 1000,
-                    })
+    monoRight.out.link(featureTrackerRight.inputImage)
+    featureTrackerRight.passthroughInputImage.link(xoutPassthroughFrameRight.input)
+    featureTrackerRight.outputFeatures.link(xoutTrackedFeaturesRight.input)
+    xinTrackedFeaturesConfig.out.link(featureTrackerRight.inputConfig)
 
-                yield frame, bboxes
+    numShaves = 2
+    numMemorySlices = 2
+    featureTrackerLeft.setHardwareResources(numShaves, numMemorySlices)
+    featureTrackerRight.setHardwareResources(numShaves, numMemorySlices)
 
-    def __del__(self):
-        del self.pipeline
+    featureTrackerConfig = featureTrackerRight.initialConfig.get()
+
+    camRgb.preview.link(spatialDetectionNetwork.input)
+
+    spatialDetectionNetwork.out.link(xoutNN.input)
+    stereo.depth.link(spatialDetectionNetwork.inputDepth)
+    log.info("Pipeline created.")
+
+    return pipeline, LABELS
 
 
-class DepthAIDebug(DepthAI):
+def capture():
+    with dai.Device(pipeline) as device:
+        previewQueue = device.getOutputQueue(name="rgb", maxSize=4, blocking=False)
+        detectionNNQueue = device.getOutputQueue(name="detections", maxSize=4, blocking=False)
 
-    def __init__(self, *args, **kwargs):
-        super().__init__(*args, **kwargs)
-        self.fps = FPS()
-        self.fps.start()
+        passthroughImageLeftQueue = device.getOutputQueue("passthroughFrameLeft", 8, False)
+        outputFeaturesLeftQueue = device.getOutputQueue("trackedFeaturesLeft", 8, False)
+        passthroughImageRightQueue = device.getOutputQueue("passthroughFrameRight", 8, False)
+        outputFeaturesRightQueue = device.getOutputQueue("trackedFeaturesRight", 8, False)
 
-    def capture(self):
-        for frame, detections in super().capture():
-            self.fps.update()
+        if DEBUG:
+            leftFeatureTracker = FeatureTrackerDebug("Feature tracking duration (frames)", "Left")
+            rightFeatureTracker = FeatureTrackerDebug("Feature tracking duration (frames)", "Right")
+        else:
+            leftFeatureTracker = FeatureTracker()
+            rightFeatureTracker = FeatureTracker()
+
+        while True:
+            frame = previewQueue.get().getCvFrame()
+            inDet = detectionNNQueue.tryGet()
+
+            detections = []
+            if inDet is not None:
+                detections = inDet.detections
+
+            bboxes = []
+            featuredata = {}
+            height = frame.shape[0]
+            width  = frame.shape[1]
             for detection in detections:
-                cv2.rectangle(frame, (detection['x_min'], detection['y_min']), (detection['x_max'], detection['y_max']), (0, 255, 0), 2)
-                cv2.putText(frame, "x: {}".format(round(detection['depth_x'], 2)), (detection['x_min'], detection['y_min'] + 30), cv2.FONT_HERSHEY_TRIPLEX, 0.5, (255, 255, 255))
-                cv2.putText(frame, "y: {}".format(round(detection['depth_y'], 2)), (detection['x_min'], detection['y_min'] + 50), cv2.FONT_HERSHEY_TRIPLEX, 0.5, (255, 255, 255))
-                cv2.putText(frame, "z: {}".format(round(detection['depth_z'], 2)), (detection['x_min'], detection['y_min'] + 70), cv2.FONT_HERSHEY_TRIPLEX, 0.5, (255, 255, 255))
-                cv2.putText(frame, "conf: {}".format(round(detection['confidence'], 2)), (detection['x_min'], detection['y_min'] + 90), cv2.FONT_HERSHEY_TRIPLEX, 0.5, (255, 255, 255))
-                cv2.putText(frame, "label: {}".format(self.labels[detection['label']], 1), (detection['x_min'], detection['y_min'] + 110), cv2.FONT_HERSHEY_TRIPLEX, 0.5, (255, 255, 255))
-            yield frame, detections
+                data = {
+                    'id': uuid.uuid4(),
+                    'label': detection.label,
+                    'confidence': detection.confidence,
+                    'x_min': int(detection.xmin * width),
+                    'x_max': int(detection.xmax * width),
+                    'y_min': int(detection.ymin * height),
+                    'y_max': int(detection.ymax * height),
+                    'depth_x': detection.spatialCoordinates.x / 1000,
+                    'depth_y': detection.spatialCoordinates.y / 1000,
+                    'depth_z': detection.spatialCoordinates.z / 1000,
+                }
+                bboxes.append(data)
 
-    def __del__(self):
-        super().__del__()
-        self.fps.stop()
-        log.info("[INFO] elapsed time: {:.2f}".format(self.fps.elapsed()))
-        log.info("[INFO] approx. FPS: {:.2f}".format(self.fps.fps()))
+                if DEBUG:
+                    cv2.rectangle(frame, (data['x_min'], data['y_min']), (data['x_max'], data['y_max']), (0, 255, 0), 2)
+                    cv2.putText(frame, "x: {}".format(round(data['depth_x'], 2)), (data['x_min'], data['y_min'] + 30), cv2.FONT_HERSHEY_TRIPLEX, 0.5, (255, 255, 255))
+                    cv2.putText(frame, "y: {}".format(round(data['depth_y'], 2)), (data['x_min'], data['y_min'] + 50), cv2.FONT_HERSHEY_TRIPLEX, 0.5, (255, 255, 255))
+                    cv2.putText(frame, "z: {}".format(round(data['depth_z'], 2)), (data['x_min'], data['y_min'] + 70), cv2.FONT_HERSHEY_TRIPLEX, 0.5, (255, 255, 255))
+                    cv2.putText(frame, "conf: {}".format(round(data['confidence'], 2)), (data['x_min'], data['y_min'] + 90), cv2.FONT_HERSHEY_TRIPLEX, 0.5, (255, 255, 255))
+                    cv2.putText(frame, "label: {}".format(LABELS[data['label']], 1), (data['x_min'], data['y_min'] + 110), cv2.FONT_HERSHEY_TRIPLEX, 0.5, (255, 255, 255))
 
-    def get_frames(self):
-        return super().get_frames()
+                target_sift_params = SIFT_PARAMS[LABELS[data['label']]]
+
+                inPassthroughFrameLeft = passthroughImageLeftQueue.get()
+                passthroughFrameLeft = inPassthroughFrameLeft.getFrame()
+                leftFrame = cv2.cvtColor(passthroughFrameLeft, cv2.COLOR_GRAY2BGR)
+
+                inPassthroughFrameRight = passthroughImageRightQueue.get()
+                passthroughFrameRight = inPassthroughFrameRight.getFrame()
+                rightFrame = cv2.cvtColor(passthroughFrameRight, cv2.COLOR_GRAY2BGR)
+
+                trackedFeaturesLeft = outputFeaturesLeftQueue.get().trackedFeatures
+                leftFeatureTracker.trackFeaturePath(trackedFeaturesLeft)
+                left_good_matches, left_keypoints = leftFeatureTracker.matchRefImg(leftFrame, target_sift_params["descriptors"])
+
+                trackedFeaturesRight = outputFeaturesRightQueue.get().trackedFeatures
+                rightFeatureTracker.trackFeaturePath(trackedFeaturesRight)
+                right_good_matches, right_keypoints = rightFeatureTracker.matchRefImg(rightFrame, target_sift_params["descriptors"])
+
+                featuredata[data['id']] = {
+                    'leftFrame': leftFrame,
+                    'left_good_matches': left_good_matches,
+                    'left_keypoints': left_keypoints,
+                    'rightFrame': rightFrame,
+                    'right_good_matches': right_good_matches,
+                    'right_keypoints': right_keypoints,
+                }
+
+                if DEBUG:
+                    left_output_frame = leftFeatureTracker.drawFeatures(leftFrame)
+                    right_output_frame = rightFeatureTracker.drawFeatures(rightFrame)
+                #     cv2.imshow("Left", left_output_frame)
+                #     cv2.imshow("Right", right_output_frame)
+
+            yield frame, bboxes, featuredata
+
+
+def get_pipeline():
+    return pipeline
+
+
+def del_pipeline():
+    del pipeline

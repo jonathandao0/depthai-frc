@@ -147,7 +147,7 @@ blob_path = model_dir / Path(model_name).with_suffix(f".blob")
 
 config_path = model_dir / Path(model_name).with_suffix(f".json")
 nn_config = NNConfig(config_path)
-labels = nn_config.labels
+LABELS = nn_config.labels
 
 spatialDetectionNetwork.setBlobPath(str(blob_path))
 spatialDetectionNetwork.setConfidenceThreshold(nn_config.confidence)
@@ -256,7 +256,7 @@ with dai.Device(pipeline) as device:
             cv2.putText(frame, "y: {}".format(round(detection['depth_y'], 2)), (detection['x_min'], detection['y_min'] + 50), cv2.FONT_HERSHEY_TRIPLEX, 0.5, (255, 255, 255))
             cv2.putText(frame, "z: {}".format(round(detection['depth_z'], 2)), (detection['x_min'], detection['y_min'] + 70), cv2.FONT_HERSHEY_TRIPLEX, 0.5, (255, 255, 255))
             cv2.putText(frame, "conf: {}".format(round(detection['confidence'], 2)), (detection['x_min'], detection['y_min'] + 90), cv2.FONT_HERSHEY_TRIPLEX, 0.5, (255, 255, 255))
-            cv2.putText(frame, "label: {}".format(labels[detection['label']], 1), (detection['x_min'], detection['y_min'] + 110), cv2.FONT_HERSHEY_TRIPLEX, 0.5, (255, 255, 255))
+            cv2.putText(frame, "label: {}".format(LABELS[detection['label']], 1), (detection['x_min'], detection['y_min'] + 110), cv2.FONT_HERSHEY_TRIPLEX, 0.5, (255, 255, 255))
 
             cv2.imshow("Frame", frame)
 

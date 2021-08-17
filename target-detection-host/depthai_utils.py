@@ -7,13 +7,14 @@ import blobconverter
 import cv2
 import depthai as dai
 
-from config import *
+from common.config import *
 from imutils.video import FPS
 
 log = logging.getLogger(__name__)
 
 
 def create_pipeline(model_name):
+    global pipeline
     log.info("Creating DepthAI pipeline...")
 
     pipeline = dai.Pipeline()
@@ -127,3 +128,7 @@ def parse_frame(frame, bboxes, valid_labels):
 
 def stream_frame():
     pass
+
+
+def del_pipeline():
+    del pipeline

@@ -7,7 +7,7 @@ from networktables.util import NetworkTables
 import depthai_utils
 import contextlib
 
-from config import MODEL_NAME
+from common.config import MODEL_NAME
 from utils import FPSHandler
 
 parser = argparse.ArgumentParser()
