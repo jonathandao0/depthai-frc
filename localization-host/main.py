@@ -4,12 +4,12 @@ import cv2
 import numpy as np
 
 from common.config import MODEL_NAME, DEBUG, NN_IMG_SIZE, DETECTION_PADDING
-from common.depthai_utils import DepthAI, DepthAIDebug
+from depthai_utils import DepthAI, DepthAIDebug
 from distance import DistanceCalculations, DistanceCalculationsDebug
 from common.field_constants import *
 
 from common.networktables_client import NetworkTablesClient
-from process_image import homography_to_perspective_transform
+from common.image_processing import output_perspective_transform
 from common.camera_info import CAMERA_RGB
 from utils import FPSHandler
 
@@ -222,19 +222,20 @@ class MainDebug(Main):
                 # matches = self.bf.match(orb_params['descriptors'], target_descriptors)
                 #
                 # good_matches = sorted(matches, key=lambda x: x.distance)
+                print("Good Matches: {}".format(len(good_matches)))
 
-                if len(good_matches) > 10:
+                if len(good_matches) > 8:
                     try:
                         src_pts = np.float32([source_keypoints[m.queryIdx].pt for m in good_matches]).reshape(-1, 1, 2)
                         dst_pts = np.float32([target_keypoints[m.trainIdx].pt for m in good_matches]).reshape(-1, 1, 2)
 
                         M, mask = cv2.findHomography(src_pts, dst_pts, cv2.RANSAC, 5.0)
 
-                        corner_camera_coord, object_points_3d, center_pts = homography_to_perspective_transform(detection_params['image'].shape, M)
+                        corner_camera_coord, object_points_3d, center_pts = output_perspective_transform(detection_params['image'].shape, M)
 
                         corner_camera_coord = corner_camera_coord.reshape(-1, 2)
                         # solve pnp using iterative LMA algorithm
-                        retval, rotation_rad, tMatrix = cv2.solvePnP(object_points_3d, corner_camera_coord,
+                        retval, rotation_rad, tMatrix, _ = cv2.solvePnPRansac(object_points_3d, corner_camera_coord,
                                                                              CAMERA_RGB['intrinsicMatrix'],
                                                                              CAMERA_RGB['distortionCoeff'])
 

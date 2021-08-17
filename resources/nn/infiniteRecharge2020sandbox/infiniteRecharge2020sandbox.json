@@ -22,12 +22,12 @@
     {
         "labels":
         [
-			"Blue_Lower_Power_Port",
-			"Blue_Upper_Power_Port",
-			"Power_Cell",
-			"Red_Loading_Station",
-			"Red_Lower_Power_Port",
-			"Red_Upper_Power_Port"
+			"blue_lower_power_port_sandbox",
+			"blue_upper_power_port_sandbox",
+			"power_cell",
+			"red_loading_station_sandbox",
+			"red_lower_power_port_sandbox",
+			"red_upper_power_port_sandbox"
         ]
     }
 }
