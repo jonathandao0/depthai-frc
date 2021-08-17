@@ -6,7 +6,7 @@ import numpy as np
 import os
 
 parser = argparse.ArgumentParser()
-parser.add_argument('-d', dest='detector', help='Set detector to use', default='SIFT', type=str.upper)
+parser.add_argument('-d', dest='detector', help='Set detector to use', default='SIFT_CUSTOM', type=str.upper)
 parser.add_argument('-i', dest='img', help='Set image to use', default='red_upper_power_port_sandbox.jpg', type=str.lower)
 args = parser.parse_args()
 
@@ -72,6 +72,33 @@ def orb(img_path):
 
     cv2.imshow("ORB", img2)
 
+
+def sift_custom(img_path):
+    maxCorners = max(25, 1)
+    # Parameters for Shi-Tomasi algorithm
+    qualityLevel = 0.01
+    minDistance = 10
+    blockSize = 3
+    gradientSize = 3
+    useHarrisDetector = False
+    k = 0.04
+
+    img = cv2.imread(img_path)
+    copy = np.copy(img)
+    copy = cv2.cvtColor(copy, cv2.COLOR_BGR2GRAY)
+    corners = cv2.goodFeaturesToTrack(copy, maxCorners, qualityLevel, minDistance, None,
+                                      blockSize=blockSize, gradientSize=gradientSize,
+                                      useHarrisDetector=useHarrisDetector, k=k)
+
+    keypoints = [cv2.KeyPoint(x=f[0][0], y=f[0][1], _size=20) for f in corners]
+    sift = cv2.SIFT_create()
+    img_kp, img_des = sift.compute(img, keypoints)
+
+    img2 = cv2.drawKeypoints(img, img_kp, None, color=(0, 255, 0), flags=0)
+
+    cv2.imshow("SIFT_CUSTOM", img2)
+
+
 def main():
     tmp_path = '../resources/images/' + args.img
     if os.path.exists(tmp_path):
@@ -79,7 +106,9 @@ def main():
     else:
         img_path = default_img_path
 
-    if args.detector == 'SURF':
+    if args.detector == 'SIFT':
+        sift(img_path)
+    elif args.detector == 'SURF':
         surf(img_path)
     elif args.detector == 'FAST':
         fast(img_path)
@@ -88,7 +117,7 @@ def main():
     elif args.detector == 'ORB':
         orb(img_path)
     else:
-        sift(img_path)
+        sift_custom(img_path)
 
     while True:
         key = cv2.waitKey(1)
