@@ -61,32 +61,36 @@ def drawSolvePNP(src_frame, dst_frame, src_kp, dst_kp, dst_good_matches, draw_pa
     return output_frame
 
 
-def solvePNPStereo(src_img, src_kp, left_keypoints, left_good_matches, right_keypoints, right_good_matches):
+def solvePNPStereo(src_img, src_kp, good_matches_threshold, left_keypoints, left_good_matches, right_keypoints, right_good_matches):
+    retval_left = False
     left_translation = []
     left_draw_params = []
     left_M = []
+    retval_right = False
     right_translation = []
     right_draw_params = []
     right_M = []
 
-    if len(left_good_matches) > 5:
-        left_translation, left_rotation, left_draw_params, left_M = solvePNPkeypoints(src_img, src_kp, CAMERA_LEFT, left_good_matches, left_keypoints)
+    if len(left_good_matches) > good_matches_threshold:
+        retval_left, left_translation, left_rotation, left_draw_params, left_M = solvePNPkeypoints(src_img, src_kp, CAMERA_LEFT, left_good_matches, left_keypoints)
 
-    if len(right_good_matches) > 5:
-        right_translation, right_rotation, right_draw_params, right_M = solvePNPkeypoints(src_img, src_kp, CAMERA_RIGHT, right_good_matches, right_keypoints)
+    if len(right_good_matches) > good_matches_threshold:
+        retval_right, right_translation, right_rotation, right_draw_params, right_M = solvePNPkeypoints(src_img, src_kp, CAMERA_RIGHT, right_good_matches, right_keypoints)
 
     rotation = np.zeros((3, 3))
     translation = np.zeros(3)
     # Merge two results with fancy math: https://stackoverflow.com/questions/51914161/solvepnp-vs-recoverpose-by-rotation-composition-why-translations-are-not-same
-    if any(left_translation) and any(right_translation):
+    if retval_left and retval_right:
         rotation = np.linalg.inv(left_rotation) * right_rotation
         translation = np.dot(right_rotation, right_translation) - np.dot(left_rotation, left_translation)
-    elif any(left_translation):
+    elif retval_left:
         rotation = left_rotation
         translation = left_translation
-    elif any(right_translation):
+    elif retval_right:
         rotation = right_rotation
         translation = right_translation
+
+    retval = retval_left or retval_right
 
     draw_params = {
         'left_draw_params': left_draw_params,
@@ -95,7 +99,7 @@ def solvePNPStereo(src_img, src_kp, left_keypoints, left_good_matches, right_key
         'right_M': right_M,
     }
 
-    return translation, rotation, draw_params
+    return retval, translation, rotation, draw_params
 
 
 def solvePNPkeypoints(src_img, src_kp, camera_coefficients, matches, keypoints):
@@ -125,8 +129,7 @@ def solvePNPkeypoints(src_img, src_kp, camera_coefficients, matches, keypoints):
                        matchesMask=matchesMask,  # draw only inliers
                        flags=2)
 
-    return tVec, rotM, draw_params, M
-
+    return retval, tVec, rotM, draw_params, M
 
 # https://github.com/GigaFlopsis/image_pose_estimation
 def output_perspective_transform(img_shape, M):

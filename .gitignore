@@ -131,7 +131,7 @@ dmypy.json
 
 .idea/
 venv/
-camera.log
+camera.log*
 
 __pycache__/
 

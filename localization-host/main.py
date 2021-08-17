@@ -48,6 +48,7 @@ class Main:
         self.fps = FPSHandler()
 
         self.robot_pose3d = [FIELD_HEIGHT / 2, FIELD_WIDTH / 2, 0, 0]
+        self.last_pose_update_time = 0
 
         image_processing.initalizeAllRefTargets()
 
@@ -65,6 +66,7 @@ class Main:
 
                 translation, rotation, draw_params = image_processing.solvePNPStereo(img1,
                                                                                      sift_params['keypoints'],
+                                                                                     LANDMARKS[label_name]['good_matches_threshold'],
                                                                                      tracked_feature["left_keypoints"],
                                                                                      tracked_feature["left_good_matches"],
                                                                                      tracked_feature["right_keypoints"],
@@ -142,12 +144,16 @@ class MainDebug(Main):
                 img1 = sift_params['image'].copy()
                 tracked_feature = featuredata[result['id']]
 
-                translation, rotation, draw_params = image_processing.solvePNPStereo(img1,
-                                                                                     sift_params['keypoints'],
-                                                                                     tracked_feature["left_keypoints"],
-                                                                                     tracked_feature["left_good_matches"],
-                                                                                     tracked_feature["right_keypoints"],
-                                                                                     tracked_feature["right_good_matches"])
+                retval, translation, rotation, draw_params = image_processing.solvePNPStereo(img1,
+                                                                                             sift_params['keypoints'],
+                                                                                             LANDMARKS[label_name]['good_matches_threshold'],
+                                                                                             tracked_feature["left_keypoints"],
+                                                                                             tracked_feature["left_good_matches"],
+                                                                                             tracked_feature["right_keypoints"],
+                                                                                             tracked_feature["right_good_matches"])
+
+                if not retval:
+                    continue
 
                 ppm = LANDMARKS[label_name]['width'] / (result['x_max'] - result['x_min'])
 
