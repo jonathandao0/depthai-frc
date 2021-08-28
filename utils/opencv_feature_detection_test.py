@@ -5,14 +5,15 @@ import logging
 import numpy as np
 import os
 
+# default_img_name = 'red_upper_power_port_sandbox'
+default_img_name = 'official_blue_lower_power_port'
+
 parser = argparse.ArgumentParser()
 parser.add_argument('-d', dest='detector', help='Set detector to use', default='SIFT_CUSTOM', type=str.upper)
-parser.add_argument('-i', dest='img', help='Set image to use', default='red_upper_power_port_sandbox.jpg', type=str.lower)
+parser.add_argument('-i', dest='img', help='Set image to use', default=default_img_name, type=str.lower)
 args = parser.parse_args()
 
 log = logging.getLogger(__name__)
-
-default_img_path = '../resources/images/red_upper_power_port_sandbox.jpg'
 
 
 def sift(img_path):
@@ -104,7 +105,7 @@ def main():
     if os.path.exists(tmp_path):
         img_path = tmp_path
     else:
-        img_path = default_img_path
+        img_path = '../resources/images/' + default_img_name + '.jpg'
 
     if args.detector == 'SIFT':
         sift(img_path)

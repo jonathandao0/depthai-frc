@@ -8,7 +8,6 @@ import numpy as np
 from scipy import linalg
 from collections import deque
 
-from common.camera_info import CAMERA_LEFT, CAMERA_RIGHT
 from common.config import NNConfig
 from common.field_constants import LANDMARKS
 from common.image_processing import output_perspective_transform

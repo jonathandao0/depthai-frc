@@ -78,7 +78,7 @@ class FeatureTrackerDrawer:
             for j in range(len(path) - 1):
                 src = (int(path[j].x), int(path[j].y))
                 dst = (int(path[j + 1].x), int(path[j + 1].y))
-                cv2.line(img, src, dst, self.lineColor, 1, cv2.LINE_AA, 0)
+                # cv2.line(img, src, dst, self.lineColor, 1, cv2.LINE_AA, 0)
             j = len(path) - 1
             cv2.circle(img, (int(path[j].x), int(path[j].y)), self.circleRadius, self.pointColor, -1, cv2.LINE_AA, 0)
 

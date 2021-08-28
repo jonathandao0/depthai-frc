@@ -4,5 +4,4 @@ opencv-python==4.5.2.54
 blobconverter==0.0.10
 pynetworktables==2021.0.0
 numpy==1.21.0
--i https://artifacts.luxonis.com/artifactory/luxonis-python-snapshot-local/
-depthai==2.8.0.0.dev0+b0093c7d53d013f3ed9b1a6413f6211d985e8ab9
+depthai==2.10.0.0
