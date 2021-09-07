@@ -5,8 +5,8 @@ import logging
 import numpy as np
 import os
 
-# default_img_name = 'red_upper_power_port_sandbox'
-default_img_name = 'official_blue_lower_power_port'
+default_img_name = 'red_upper_power_port_sandbox'
+# default_img_name = 'official_blue_lower_power_port'
 
 parser = argparse.ArgumentParser()
 parser.add_argument('-d', dest='detector', help='Set detector to use', default='SIFT_CUSTOM', type=str.upper)
@@ -94,10 +94,15 @@ def sift_custom(img_path):
     keypoints = [cv2.KeyPoint(x=f[0][0], y=f[0][1], _size=20) for f in corners]
     sift = cv2.SIFT_create()
     img_kp, img_des = sift.compute(img, keypoints)
-
+    img_kp = img_kp[0:1]
     img2 = cv2.drawKeypoints(img, img_kp, None, color=(0, 255, 0), flags=0)
 
+    h, w, d = img.size
+    ppm = / w
+    points3D =
+
     cv2.imshow("SIFT_CUSTOM", img2)
+    pass
 
 
 def main():

@@ -2,6 +2,8 @@ from collections import deque
 
 import cv2
 
+import numpy as np
+
 FLANN_INDEX_KDTREE = 1
 index_params = dict(algorithm=FLANN_INDEX_KDTREE, trees=5)
 search_params = dict(checks=50)
@@ -50,13 +52,8 @@ class FeatureTracker:
 
         self.trackedIDs = newTrackedIDs
 
-    def matchRefImg(self, frame, src_des):
+    def matchRefImg(self, frame, keypoints, src_des):
         good_matches = []
-        keypoints = []
-
-        for featurePath in self.trackedFeaturesPath.values():
-            n = len(featurePath) - 1
-            keypoints.append(cv2.KeyPoint(x=featurePath[n].x, y=featurePath[n].y, _size=20))
 
         target_kp, target_des = sift.compute(frame, keypoints)
 
@@ -103,3 +100,62 @@ class FeatureTrackerDebug(FeatureTracker):
         self.windowName = windowName
         # cv2.namedWindow(windowName)
         # cv2.createTrackbar(trackbarName, windowName, FeatureTrackerDebug.trackedFeaturesPathLength, FeatureTrackerDebug.maxTrackedFeaturesPathLength, self.onTrackBar)
+
+
+def matchStereoToRefImage(trackedFeaturesLeft, leftFrame, trackedFeaturesRight, rightFrame, refDes):
+    left_keypoints = []
+    right_keypoints = []
+    ref_stereo_matches = []
+    left_good_kp = []
+    right_good_kp = []
+
+    for feature in trackedFeaturesLeft:
+        left_keypoints.append(cv2.KeyPoint(x=feature.position.x, y=feature.position.y, _size=20))
+
+    left_kp, left_des = sift.compute(leftFrame, left_keypoints)
+
+    for feature in trackedFeaturesRight:
+        right_keypoints.append(cv2.KeyPoint(x=feature.position.x, y=feature.position.y, _size=20))
+
+    right_kp, right_des = sift.compute(rightFrame, right_keypoints)
+
+    if len(left_des) >= 2 and len(right_des) >= 2:
+        left_right_matches = flann.knnMatch(left_des, right_des, k=2)
+
+        left_right_kp1 = []
+        left_right_des = []
+        left_right_kp2 = []
+        for m, n in left_right_matches:
+            if m.distance < 0.7 * n.distance:
+                left_right_kp1.append(left_kp[m.queryIdx])
+                left_right_des.append(left_des[m.queryIdx])
+                left_right_kp2.append(right_kp[m.trainIdx])
+
+        left_right_des = np.array(left_right_des)
+
+        if len(refDes) >= 2 and len(left_right_des) >= 2:
+            stereo_matches = flann.knnMatch(refDes, left_right_des, k=2)
+
+            for m, n in stereo_matches:
+                if m.distance < 0.7 * n.distance:
+                    ref_stereo_matches.append(m)
+                    left_good_kp.append(left_right_kp1[m.trainIdx])
+                    right_good_kp.append(left_right_kp2[m.trainIdx])
+
+    return ref_stereo_matches, left_right_kp1, left_good_kp, right_good_kp
+
+
+def calculateRotationMask(src_kp, dst_kp, matches):
+    src_pts = np.float32([src_kp[m.queryIdx].pt for m in matches]).reshape(-1, 1, 2)
+    dst_pts = np.float32([dst_kp[m.trainIdx].pt for m in matches]).reshape(-1, 1, 2)
+
+    M, mask = cv2.findHomography(src_pts, dst_pts, cv2.RANSAC, 5.0)
+
+    matchesMask = mask.ravel().tolist()
+
+    draw_params = dict(matchColor=(0, 255, 0),  # draw matches in green color
+                       singlePointColor=None,
+                       matchesMask=matchesMask,  # draw only inliers
+                       flags=2)
+
+    return M, draw_params

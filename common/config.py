@@ -3,7 +3,6 @@ import logging
 import os
 import sys
 
-import numpy as np
 from concurrent_log_handler import ConcurrentRotatingFileHandler
 
 root = logging.getLogger()

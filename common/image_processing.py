@@ -3,7 +3,7 @@ import math
 import cv2
 import numpy as np
 
-from common.camera_info import CAMERA_LEFT, CAMERA_RIGHT
+from common.camera_info import OAK_L_CAMERA_RIGHT, OAK_L_CAMERA_LEFT
 from common.field_constants import LANDMARKS
 
 sift = cv2.SIFT_create()
@@ -15,9 +15,11 @@ def initalizeAllRefTargets():
         try:
             img_path = "../resources/images/{}.jpg".format(landmark)
             image, keypoints, descriptors = createRefImg(img_path)
+            # points3D = createPoints3D(landmark, params, keypoints)
             SIFT_PARAMS[landmark] = {
                 'image': image,
                 'keypoints': keypoints,
+                # '3D_points': points3D,
                 'descriptors': descriptors
             }
         except Exception:
@@ -50,11 +52,15 @@ def createRefImg(img_path):
 
     return src_img, img_kp, img_des
 
+# def createPoints3D(landmark, params, keypoints):
+#     ppm =
+#
+#     return points3D
 
-def drawSolvePNP(src_frame, dst_frame, src_kp, dst_kp, dst_good_matches, draw_params):
+def drawSolvePNP(src_frame, dst_frame, src_kp, dst_kp, dst_good_matches, M, draw_params):
     h, w, d = src_frame.shape
     pts = np.float32([[0, 0], [0, h - 1], [w - 1, h - 1], [w - 1, 0]]).reshape(-1, 1, 2)
-    dst = cv2.perspectiveTransform(pts, left_M)
+    dst = cv2.perspectiveTransform(pts, M)
     img2 = cv2.polylines(dst_frame, [np.int32(dst)], True, 255, 3, cv2.LINE_AA)
     output_frame = cv2.drawMatches(src_frame, src_kp, img2, dst_kp, dst_good_matches, None, **draw_params)
 
@@ -62,74 +68,19 @@ def drawSolvePNP(src_frame, dst_frame, src_kp, dst_kp, dst_good_matches, draw_pa
 
 
 def solvePNPStereo(src_img, src_kp, good_matches_threshold, left_keypoints, left_good_matches, right_keypoints, right_good_matches):
-    retval_left = False
-    left_translation = []
-    left_draw_params = []
-    left_M = []
-    retval_right = False
-    right_translation = []
-    right_draw_params = []
-    right_M = []
 
-    if len(left_good_matches) > good_matches_threshold:
-        retval_left, left_translation, left_rotation, left_draw_params, left_M = solvePNPkeypoints(src_img, src_kp, CAMERA_LEFT, left_good_matches, left_keypoints)
+    # Triangulate points
 
-    if len(right_good_matches) > good_matches_threshold:
-        retval_right, right_translation, right_rotation, right_draw_params, right_M = solvePNPkeypoints(src_img, src_kp, CAMERA_RIGHT, right_good_matches, right_keypoints)
-
-    rotation = np.zeros((3, 3))
-    translation = np.zeros(3)
-    # Merge two results with fancy math: https://stackoverflow.com/questions/51914161/solvepnp-vs-recoverpose-by-rotation-composition-why-translations-are-not-same
-    if retval_left and retval_right:
-        rotation = np.linalg.inv(left_rotation) * right_rotation
-        translation = np.dot(right_rotation, right_translation) - np.dot(left_rotation, left_translation)
-    elif retval_left:
-        rotation = left_rotation
-        translation = left_translation
-    elif retval_right:
-        rotation = right_rotation
-        translation = right_translation
-
-    retval = retval_left or retval_right
-
-    draw_params = {
-        'left_draw_params': left_draw_params,
-        'left_M': left_M,
-        'right_draw_params': right_draw_params,
-        'right_M': right_M,
-    }
-
-    return retval, translation, rotation, draw_params
-
-
-def solvePNPkeypoints(src_img, src_kp, camera_coefficients, matches, keypoints):
-    src_pts = np.float32([src_kp[m.queryIdx].pt for m in matches]).reshape(-1, 1, 2)
-    dst_pts = np.float32([keypoints[m.trainIdx].pt for m in matches]).reshape(-1, 1, 2)
-
-    M, mask = cv2.findHomography(src_pts, dst_pts, cv2.RANSAC, 5.0)
-
-    matchesMask = mask.ravel().tolist()
-    corner_camera_coord, object_points_3d, center_pts = output_perspective_transform(src_img.shape, M)
-
-    corner_camera_coord = corner_camera_coord.reshape(-1, 2)
-
-    retval, rVec, tVec, _ = cv2.solvePnPRansac(object_points_3d, corner_camera_coord,
-                                               camera_coefficients['intrinsicMatrix'],
-                                               camera_coefficients['distortionCoeff'])
+    # Use triangulated 3D points with one of the stereo 2D points for solvePNP
+    retval, rVec, tVec, _ = cv2.solvePnPRansac(triangulated_points_3d, left_keypoints,
+                                               OAK_L_CAMERA_LEFT['intrinsicMatrix'],
+                                               OAK_L_CAMERA_LEFT['distortionCoeff'])
 
     rotM = cv2.Rodrigues(rVec)[0]
-    # translation = -np.matrix(rotM).T * np.matrix(tMatrix)
-    # ppm = LANDMARKS['red_upper_power_port_sandbox']['width'] / (100)
 
-    # translation = ppm * translation
-    # rotation_deg = 57.2958 * rotation_rad
+    return retval, tVec, rotM
+    # return [], [], []
 
-    draw_params = dict(matchColor=(0, 255, 0),  # draw matches in green color
-                       singlePointColor=None,
-                       matchesMask=matchesMask,  # draw only inliers
-                       flags=2)
-
-    return retval, tVec, rotM, draw_params, M
 
 # https://github.com/GigaFlopsis/image_pose_estimation
 def output_perspective_transform(img_shape, M):

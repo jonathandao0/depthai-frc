@@ -34,7 +34,7 @@ def goodFeaturesToTrack_Demo(val):
 parser = argparse.ArgumentParser(description='Code for Shi-Tomasi corner detector tutorial.')
 parser.add_argument('--input', help='Path to input image.', default='pic3.png')
 args = parser.parse_args()
-src = cv.imread('../resources/images/red_upper_power_port_sandbox.jpg')
+src = cv.imread('../resources/images/red_upper_power_port.jpg')
 
 if src is None:
     print('Could not open or find the image:', args.input)

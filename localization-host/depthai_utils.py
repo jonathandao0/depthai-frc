@@ -3,12 +3,13 @@ from pathlib import Path
 
 import cv2
 import depthai as dai
+import numpy as np
 
 from common.config import *
 from imutils.video import FPS
 
-from common.feature_tracker import FeatureTrackerDebug, FeatureTracker
-from common.image_processing import SIFT_PARAMS
+from common.feature_tracker import FeatureTrackerDebug, FeatureTracker, matchStereoToRefImage, calculateRotationMask
+from common.image_processing import SIFT_PARAMS, drawSolvePNP
 
 log = logging.getLogger(__name__)
 
@@ -18,6 +19,7 @@ LABELS = []
 def create_pipeline(model_name):
     global pipeline
     global LABELS
+    global disparityMultiplier
     log.info("Creating DepthAI pipeline...")
 
     # out_depth = False  # Disparity by default
@@ -26,7 +28,7 @@ def create_pipeline(model_name):
     # extended = False  # Closer-in minimum depth, disparity range is doubled
     # subpixel = True  # Better accuracy for longer distance, fractional disparity 32-levels
     # # Options: MEDIAN_OFF, KERNEL_3x3, KERNEL_5x5, KERNEL_7x7
-    # median = dai.StereoDepthProperties.MedianFilter.KERNEL_7x7
+    median = dai.StereoDepthProperties.MedianFilter.KERNEL_7x7
 
     pipeline = dai.Pipeline()
     pipeline.setOpenVINOVersion(dai.OpenVINO.Version.VERSION_2021_2)
@@ -48,6 +50,8 @@ def create_pipeline(model_name):
     xoutPassthroughFrameRight = pipeline.createXLinkOut()
     xoutTrackedFeaturesRight = pipeline.createXLinkOut()
     xinTrackedFeaturesConfig = pipeline.createXLinkIn()
+    disparityOut = pipeline.createXLinkOut()
+    depthOut = pipeline.createXLinkOut()
 
     # Properties
     camRgb.setPreviewSize(NN_IMG_SIZE, NN_IMG_SIZE)
@@ -60,6 +64,8 @@ def create_pipeline(model_name):
     xoutPassthroughFrameRight.setStreamName("passthroughFrameRight")
     xoutTrackedFeaturesRight.setStreamName("trackedFeaturesRight")
     xinTrackedFeaturesConfig.setStreamName("trackedFeaturesConfig")
+    disparityOut.setStreamName('disparity')
+    depthOut.setStreamName('depth')
 
     monoLeft.setResolution(dai.MonoCameraProperties.SensorResolution.THE_720_P)
     monoLeft.setBoardSocket(dai.CameraBoardSocket.LEFT)
@@ -71,7 +77,7 @@ def create_pipeline(model_name):
     # stereo.setOutputRectified(out_rectified)
     stereo.setConfidenceThreshold(255)
     stereo.setRectifyEdgeFillColor(0) # Black, to better see the cutout
-    # stereo.setMedianFilter(median) # KERNEL_7x7 default
+    stereo.setMedianFilter(median) # KERNEL_7x7 default
     # stereo.setLeftRightCheck(lrcheck)
     # stereo.setExtendedDisparity(extended)
     # stereo.setSubpixel(subpixel)
@@ -122,7 +128,11 @@ def create_pipeline(model_name):
     camRgb.preview.link(spatialDetectionNetwork.input)
 
     spatialDetectionNetwork.out.link(xoutNN.input)
+    stereo.disparity.link(disparityOut.input)
     stereo.depth.link(spatialDetectionNetwork.inputDepth)
+    spatialDetectionNetwork.passthroughDepth.link(depthOut.input)
+
+    disparityMultiplier = 255 / stereo.getMaxDisparity()
     log.info("Pipeline created.")
 
     return pipeline, LABELS
@@ -132,6 +142,8 @@ def capture():
     with dai.Device(pipeline) as device:
         previewQueue = device.getOutputQueue(name="rgb", maxSize=4, blocking=False)
         detectionNNQueue = device.getOutputQueue(name="detections", maxSize=4, blocking=False)
+        disparityQueue = device.getOutputQueue(name="disparity", maxSize=4, blocking=False)
+        depthQueue = device.getOutputQueue(name="depth", maxSize=4, blocking=False)
 
         passthroughImageLeftQueue = device.getOutputQueue("passthroughFrameLeft", 8, False)
         outputFeaturesLeftQueue = device.getOutputQueue("trackedFeaturesLeft", 8, False)
@@ -146,12 +158,27 @@ def capture():
             rightFeatureTracker = FeatureTracker()
 
         while True:
+            results = {}
             frame = previewQueue.get().getCvFrame()
             inDet = detectionNNQueue.tryGet()
+            inDisparity = disparityQueue.tryGet()
+            inDepth = depthQueue.tryGet()
 
             detections = []
             if inDet is not None:
                 detections = inDet.detections
+
+            disparityFrame = np.array([])
+            if inDisparity is not None:
+                # Flip disparity frame, normalize it and apply color map for better visualization
+                disparityFrame = inDisparity.getCvFrame()
+                disparityFrame = cv2.flip(disparityFrame, 1)
+                disparityFrame = (disparityFrame * disparityMultiplier).astype(np.uint8)
+                disparityFrame = cv2.applyColorMap(disparityFrame, cv2.COLORMAP_JET)
+
+            depth_map = np.array([])
+            if inDepth is not None:
+                depth_map = inDepth.getCvFrame().astype(np.uint16)
 
             bboxes = []
             featuredata = {}
@@ -192,28 +219,55 @@ def capture():
 
                 trackedFeaturesLeft = outputFeaturesLeftQueue.get().trackedFeatures
                 leftFeatureTracker.trackFeaturePath(trackedFeaturesLeft)
-                left_good_matches, left_keypoints = leftFeatureTracker.matchRefImg(leftFrame, target_sift_params["descriptors"])
 
                 trackedFeaturesRight = outputFeaturesRightQueue.get().trackedFeatures
                 rightFeatureTracker.trackFeaturePath(trackedFeaturesRight)
-                right_good_matches, right_keypoints = rightFeatureTracker.matchRefImg(rightFrame, target_sift_params["descriptors"])
 
-                featuredata[data['id']] = {
-                    'leftFrame': leftFrame,
-                    'left_good_matches': left_good_matches,
-                    'left_keypoints': left_keypoints,
-                    'rightFrame': rightFrame,
-                    'right_good_matches': right_good_matches,
-                    'right_keypoints': right_keypoints,
-                }
+                featuredata = {}
+                if any(trackedFeaturesLeft) and any(trackedFeaturesRight):
+                    ref_good_matches, left_keypoints, left_filtered_keypoints, right_filtered_keypoints = matchStereoToRefImage(trackedFeaturesLeft, leftFrame, trackedFeaturesRight, rightFrame, target_sift_params["descriptors"])
 
-                if DEBUG:
-                    left_output_frame = leftFeatureTracker.drawFeatures(leftFrame)
-                    right_output_frame = rightFeatureTracker.drawFeatures(rightFrame)
-                #     cv2.imshow("Left", left_output_frame)
-                #     cv2.imshow("Right", right_output_frame)
+                    featuredata[data['id']] = {
+                        'frame': leftFrame,
+                        'good_matches': ref_good_matches,
+                        'left_keypoints': left_filtered_keypoints,
+                        'right_keypoints': right_filtered_keypoints
+                    }
 
-            yield frame, bboxes, featuredata
+                    results['featuredata'] = featuredata
+
+                    if DEBUG:
+                        if any(ref_good_matches):
+                            src_pts = np.float32([target_sift_params['keypoints'][m.queryIdx].pt for m in ref_good_matches]).reshape(-1, 1, 2)
+                            dst_pts = np.float32([left_keypoints[m.trainIdx].pt for m in ref_good_matches]).reshape(-1, 1, 2)
+
+                            if len(src_pts) >= 4 and len(dst_pts) >=4:
+                                try:
+                                    M, mask = cv2.findHomography(src_pts, dst_pts, cv2.RANSAC, 5.0)
+
+                                    matchesMask = mask.ravel().tolist()
+
+                                    draw_params = dict(matchColor=(0, 255, 0),  # draw matches in green color
+                                                       singlePointColor=None,
+                                                       matchesMask=matchesMask,  # draw only inliers
+                                                       flags=2)
+
+                                    h, w, d = target_sift_params['image'].shape
+                                    pts = np.float32([[0, 0], [0, h - 1], [w - 1, h - 1], [w - 1, 0]]).reshape(-1, 1, 2)
+                                    dst = cv2.perspectiveTransform(pts, M)
+                                    img2 = cv2.polylines(leftFrame, [np.int32(dst)], True, 255, 3, cv2.LINE_AA)
+                                    img3 = cv2.drawMatches(target_sift_params['image'], target_sift_params['keypoints'], img2, left_keypoints,
+                                                           ref_good_matches, None, **draw_params)
+
+                                    cv2.imshow("Ransac", img3)
+                                except Exception as e:
+                                    pass
+
+            results['frame'] = frame
+            results['bboxes'] = bboxes
+            results['disparityFrame'] = disparityFrame
+
+            yield results
 
 
 def get_pipeline():

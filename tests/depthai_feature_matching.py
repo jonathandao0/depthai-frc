@@ -33,7 +33,7 @@ def createRefImg():
     useHarrisDetector = False
     k = 0.04
 
-    src_img = cv2.imread('../resources/images/red_upper_power_port_sandbox.jpg')
+    src_img = cv2.imread('../resources/images/red_upper_power_port.jpg')
     copy = np.copy(src_img)
     copy = cv2.cvtColor(copy, cv2.COLOR_BGR2GRAY)
     corners = cv2.goodFeaturesToTrack(copy, maxCorners, qualityLevel, minDistance, None,
