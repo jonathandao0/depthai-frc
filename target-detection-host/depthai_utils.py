@@ -23,12 +23,20 @@ def create_pipeline(model_name):
     # Define sources and outputs
     camRgb = pipeline.createColorCamera()
     detectionNetwork = pipeline.createYoloDetectionNetwork()
+    edgeDetectorRgb = pipeline.createEdgeDetector()
+    edgeManip = pipeline.createImageManip()
 
     xoutRgb = pipeline.createXLinkOut()
     xoutNN = pipeline.createXLinkOut()
+    xoutEdgeRgb = pipeline.createXLinkOut()
+    edgeNN = pipeline.createXLinkOut()
+    xinEdgeCfg = pipeline.createXLinkIn()
 
     xoutRgb.setStreamName("rgb")
     xoutNN.setStreamName("detections")
+    xoutEdgeRgb.setStreamName("edgeRgb")
+    xinEdgeCfg.setStreamName("edgeCfg")
+    edgeNN.setStreamName("edgeNN")
 
     # Properties
     camRgb.setPreviewSize(NN_IMG_SIZE, NN_IMG_SIZE)
@@ -37,6 +45,9 @@ def create_pipeline(model_name):
     camRgb.setInterleaved(False)
     camRgb.setColorOrder(dai.ColorCameraProperties.ColorOrder.BGR)
     camRgb.setFps(60)
+
+    edgeDetectorRgb.setMaxOutputFrameSize(camRgb.getVideoWidth() * camRgb.getVideoHeight())
+    edgeManip.initialConfig.setResize(NN_IMG_SIZE, NN_IMG_SIZE)
 
     model_dir = Path(__file__).parent.parent / Path(f"resources/nn/") / model_name
     blob_path = model_dir / Path(model_name).with_suffix(f".blob")
@@ -60,6 +71,12 @@ def create_pipeline(model_name):
     # detectionNetwork.passthrough.link(xoutRgb.input)
     camRgb.preview.link(xoutRgb.input)
     detectionNetwork.out.link(xoutNN.input)
+
+    camRgb.video.link(edgeDetectorRgb.inputImage)
+    # edgeDetectorRgb.outputImage.link(xoutEdgeRgb.input)
+    edgeDetectorRgb.outputImage.link(edgeManip.inputImage)
+    edgeManip.out.link(edgeNN.input)
+    xinEdgeCfg.out.link(edgeDetectorRgb.inputConfig)
 
     log.info("Pipeline created.")
 
@@ -88,10 +105,15 @@ def capture(device_info):
     with dai.Device(pipeline, device_info) as device:
         previewQueue = device.getOutputQueue(name="rgb", maxSize=4, blocking=False)
         detectionNNQueue = device.getOutputQueue(name="detections", maxSize=4, blocking=False)
+        # edgeRgbQueue = device.getOutputQueue("edgeRgb", 8, False)
+        edgeNNQueue = device.getOutputQueue("edgeNN", 8, False)
+        edgeCfgQueue = device.getInputQueue("edgeCfg")
 
         while True:
             frame = previewQueue.get().getCvFrame()
             inDet = detectionNNQueue.tryGet()
+            # edgeFrame = edgeRgbQueue.get().getFrame()
+            edgeFrame = edgeNNQueue.get().getFrame()
 
             detections = []
             if inDet is not None:
@@ -113,7 +135,7 @@ def capture(device_info):
                     'y_max': int(detection.ymax * height),
                 })
 
-            yield frame, bboxes
+            yield frame, bboxes, edgeFrame
 
 
 def del_pipeline():

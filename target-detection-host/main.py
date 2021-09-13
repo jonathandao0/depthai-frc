@@ -43,11 +43,11 @@ class Main:
         }}
 
         self.pipeline, self.labels = depthai_utils.create_pipeline("infiniteRecharge2021")
-        self.oak-1_stream = MjpegStream(1181)
-        self.oak-2_stream = MjpegStream(1182)
+        self.oak_1_stream = MjpegStream(1181)
+        self.oak_2_stream = MjpegStream(1182)
         # self.devices = depthai_utils.init_devices(self.device_list, self.pipeline)
 
-    def parse_frame(self, frame, bboxes, device):
+    def parse_frame(self, frame, bboxes, edgeFrame, device):
         device_name = device['name']
 
         if device_name == "OAK-1":
@@ -59,25 +59,29 @@ class Main:
                 if target_label not in valid_labels:
                     continue
 
-                angle_offset = (bbox['x_mid'] - (depthai_utils.NN_IMG_SIZE / 2)) * 68.7938003540039 / 1080
+                target_x = target_detection.find_target_center(edgeFrame, bbox)
+
+                angle_offset = (target_x - (depthai_utils.NN_IMG_SIZE / 2)) * 68.7938003540039 / 1080
                 nt_tab.putString("Target", target_label)
                 nt_tab.putNumber("tx", angle_offset)
-                print("{}:\t{}".format(target_label, angle_offset))
 
-                cv2.rectangle(frame, (bbox['x_min'], bbox['y_min']), (bbox['x_max'], bbox['y_max']),
-                              (0, 255, 0), 2)
-                cv2.putText(frame, "x: {}".format(round(bbox['x_mid'], 2)), (bbox['x_min'], bbox['y_min'] + 30),
-                            cv2.FONT_HERSHEY_TRIPLEX, 0.5, (255, 255, 255))
-                cv2.putText(frame, "y: {}".format(round(bbox['y_mid'], 2)), (bbox['x_min'], bbox['y_min'] + 50),
-                            cv2.FONT_HERSHEY_TRIPLEX, 0.5, (255, 255, 255))
-                cv2.putText(frame, "angle: {}".format(round(angle_offset, 2)), (bbox['x_min'], bbox['y_min'] + 70),
-                            cv2.FONT_HERSHEY_TRIPLEX, 0.5, (255, 255, 255))
-                cv2.putText(frame, "conf: {}".format(round(bbox['confidence'], 2)), (bbox['x_min'], bbox['y_min'] + 90),
-                            cv2.FONT_HERSHEY_TRIPLEX, 0.5, (255, 255, 255))
-                cv2.putText(frame, "label: {}".format(self.labels[bbox['label']], 1), (bbox['x_min'], bbox['y_min'] + 110),
-                            cv2.FONT_HERSHEY_TRIPLEX, 0.5, (255, 255, 255))
+                # cv2.rectangle(frame, (bbox['x_min'], bbox['y_min']), (bbox['x_max'], bbox['y_max']),
+                #               (0, 255, 0), 2)
+                # cv2.putText(frame, "x: {}".format(round(bbox['x_mid'], 2)), (bbox['x_min'], bbox['y_min'] + 30),
+                #             cv2.FONT_HERSHEY_TRIPLEX, 0.5, (255, 255, 255))
+                # cv2.putText(frame, "y: {}".format(round(bbox['y_mid'], 2)), (bbox['x_min'], bbox['y_min'] + 50),
+                #             cv2.FONT_HERSHEY_TRIPLEX, 0.5, (255, 255, 255))
+                # cv2.putText(frame, "angle: {}".format(round(angle_offset, 2)), (bbox['x_min'], bbox['y_min'] + 70),
+                #             cv2.FONT_HERSHEY_TRIPLEX, 0.5, (255, 255, 255))
+                # cv2.putText(frame, "conf: {}".format(round(bbox['confidence'], 2)), (bbox['x_min'], bbox['y_min'] + 90),
+                #             cv2.FONT_HERSHEY_TRIPLEX, 0.5, (255, 255, 255))
+                # cv2.putText(frame, "label: {}".format(self.labels[bbox['label']], 1), (bbox['x_min'], bbox['y_min'] + 110),
+                #             cv2.FONT_HERSHEY_TRIPLEX, 0.5, (255, 255, 255))
 
-                self.oak-1_stream.sendFrame(frame)
+                cv2.rectangle(edgeFrame, (bbox['x_min'], bbox['y_min']), (bbox['x_max'], bbox['y_max']),
+                              (255, 255, 255), 2)
+
+                self.oak_1_stream.sendFrame(edgeFrame)
         elif device_name == "OAK-2":
             valid_labels = ['powercell']
 
@@ -88,8 +92,8 @@ class Main:
                 device_id = self.device_list[device]['id']
                 found, device_info = depthai.Device.getDeviceByMxId(device_id)
 
-                for frame, bboxes in depthai_utils.capture(device_info):
-                    self.parse_frame(frame, bboxes, self.device_list[device])
+                for frame, bboxes, edgeFrame in depthai_utils.capture(device_info):
+                    self.parse_frame(frame, bboxes, edgeFrame, self.device_list[device])
 
         finally:
             pass
@@ -102,7 +106,7 @@ class MainDebug(Main):
     def __init__(self):
         super().__init__()
 
-    def parse_frame(self, frame, bboxes, device):
+    def parse_frame(self, frame, bboxes, edgeFrame, device):
         device_name = device['name']
 
         if device_name == "OAK-1":
@@ -114,7 +118,9 @@ class MainDebug(Main):
                 if target_label not in valid_labels:
                     continue
 
-                angle_offset = (bbox['x_mid'] - (depthai_utils.NN_IMG_SIZE / 2)) * 68.7938003540039 / 1080
+                target_x = target_detection.find_target_center(edgeFrame, bbox)
+
+                angle_offset = (target_x - (depthai_utils.NN_IMG_SIZE / 2)) * 68.7938003540039 / 1080
                 nt_tab.putString("Target", target_label)
                 nt_tab.putNumber("tx", angle_offset)
 
@@ -131,7 +137,11 @@ class MainDebug(Main):
                 cv2.putText(frame, "label: {}".format(self.labels[bbox['label']], 1), (bbox['x_min'], bbox['y_min'] + 110),
                             cv2.FONT_HERSHEY_TRIPLEX, 0.5, (255, 255, 255))
 
+                cv2.rectangle(edgeFrame, (bbox['x_min'], bbox['y_min']), (bbox['x_max'], bbox['y_max']),
+                              (255, 255, 255), 2)
+
             cv2.imshow("OAK-1", frame)
+            cv2.imshow("OAK-1 Edge", edgeFrame)
 
         elif device_name == "OAK-2":
             valid_labels = ['powercell']
