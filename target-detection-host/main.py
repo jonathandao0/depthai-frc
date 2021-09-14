@@ -5,6 +5,8 @@ import argparse
 import cv2
 import depthai
 import depthai as dai
+import numpy as np
+
 import target_detection
 
 from networktables.util import NetworkTables
@@ -43,8 +45,8 @@ class Main:
         }}
 
         self.pipeline, self.labels = depthai_utils.create_pipeline("infiniteRecharge2021")
-        self.oak_1_stream = MjpegStream(1181)
-        self.oak_2_stream = MjpegStream(1182)
+        self.oak_1_stream = MjpegStream(1182)
+        self.oak_2_stream = MjpegStream(1183)
         # self.devices = depthai_utils.init_devices(self.device_list, self.pipeline)
 
     def parse_frame(self, frame, bboxes, edgeFrame, device):
@@ -115,10 +117,11 @@ class MainDebug(Main):
             nt_tab = self.device_list['OAK-1']['nt_tab']
             for bbox in bboxes:
                 target_label = self.labels[bbox['label']]
+
                 if target_label not in valid_labels:
                     continue
 
-                target_x = target_detection.find_target_center(edgeFrame, bbox)
+                edgeFrame, target_x, target_y = target_detection.find_largest_contour(edgeFrame, bbox)
 
                 angle_offset = (target_x - (depthai_utils.NN_IMG_SIZE / 2)) * 68.7938003540039 / 1080
                 nt_tab.putString("Target", target_label)
@@ -126,7 +129,7 @@ class MainDebug(Main):
 
                 cv2.rectangle(frame, (bbox['x_min'], bbox['y_min']), (bbox['x_max'], bbox['y_max']),
                               (0, 255, 0), 2)
-                cv2.putText(frame, "x: {}".format(round(bbox['x_mid'], 2)), (bbox['x_min'], bbox['y_min'] + 30),
+                cv2.putText(frame, "x: {}".format(round(target_x, 2)), (bbox['x_min'], bbox['y_min'] + 30),
                             cv2.FONT_HERSHEY_TRIPLEX, 0.5, (255, 255, 255))
                 cv2.putText(frame, "y: {}".format(round(bbox['y_mid'], 2)), (bbox['x_min'], bbox['y_min'] + 50),
                             cv2.FONT_HERSHEY_TRIPLEX, 0.5, (255, 255, 255))
@@ -139,6 +142,11 @@ class MainDebug(Main):
 
                 cv2.rectangle(edgeFrame, (bbox['x_min'], bbox['y_min']), (bbox['x_max'], bbox['y_max']),
                               (255, 255, 255), 2)
+
+                cv2.rectangle(edgeFrame, (bbox['x_min'], bbox['y_min']), (bbox['x_max'], bbox['y_max']),
+                              (255, 255, 255), 2)
+
+                cv2.circle(edgeFrame, (int(round(target_x, 0)), int(round(target_y, 0))), radius=5, color=(128, 128, 128), thickness=-1)
 
             cv2.imshow("OAK-1", frame)
             cv2.imshow("OAK-1 Edge", edgeFrame)

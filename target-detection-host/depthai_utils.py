@@ -27,12 +27,16 @@ def create_pipeline(model_name):
     edgeManip = pipeline.createImageManip()
 
     xoutRgb = pipeline.createXLinkOut()
+    rgbControl = pipeline.createXLinkIn()
+    xinRgb = pipeline.createXLinkIn()
     xoutNN = pipeline.createXLinkOut()
     xoutEdgeRgb = pipeline.createXLinkOut()
     edgeNN = pipeline.createXLinkOut()
     xinEdgeCfg = pipeline.createXLinkIn()
 
     xoutRgb.setStreamName("rgb")
+    xinRgb.setStreamName("rgbCfg")
+    rgbControl.setStreamName('rgbControl')
     xoutNN.setStreamName("detections")
     xoutEdgeRgb.setStreamName("edgeRgb")
     xinEdgeCfg.setStreamName("edgeCfg")
@@ -58,6 +62,7 @@ def create_pipeline(model_name):
 
     detectionNetwork.setBlobPath(str(blob_path))
     detectionNetwork.setConfidenceThreshold(nn_config.confidence)
+    # detectionNetwork.setConfidenceThreshold(0.5)
     detectionNetwork.setNumClasses(nn_config.metadata["classes"])
     detectionNetwork.setCoordinateSize(nn_config.metadata["coordinates"])
     detectionNetwork.setAnchors(nn_config.metadata["anchors"])
@@ -70,6 +75,8 @@ def create_pipeline(model_name):
     camRgb.preview.link(detectionNetwork.input)
     # detectionNetwork.passthrough.link(xoutRgb.input)
     camRgb.preview.link(xoutRgb.input)
+    rgbControl.out.link(camRgb.inputControl)
+    xinRgb.out.link(camRgb.inputConfig)
     detectionNetwork.out.link(xoutNN.input)
 
     camRgb.video.link(edgeDetectorRgb.inputImage)
@@ -109,7 +116,18 @@ def capture(device_info):
         edgeNNQueue = device.getOutputQueue("edgeNN", 8, False)
         edgeCfgQueue = device.getInputQueue("edgeCfg")
 
+        controlQueue = device.getInputQueue('rgbControl')
+        configQueue = device.getInputQueue('rgbCfg')
+
+
         while True:
+            cfg = dai.CameraControl()
+            cfg.setAutoFocusMode(dai.CameraControl.AutoFocusMode.OFF)
+            cfg.setAutoWhiteBalanceMode(dai.CameraControl.AutoWhiteBalanceMode.OFF)
+            cfg.setAutoExposureLock(True)
+            cfg.setAutoExposureCompensation(-6)
+            configQueue.send(cfg)
+
             frame = previewQueue.get().getCvFrame()
             inDet = detectionNNQueue.tryGet()
             # edgeFrame = edgeRgbQueue.get().getFrame()
