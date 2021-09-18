@@ -61,6 +61,8 @@ class Main:
                 if target_label not in valid_labels:
                     continue
 
+                edgeFrame, target_x, target_y = target_detection.find_largest_contour(edgeFrame, bbox)
+
                 target_x = target_detection.find_target_center(edgeFrame, bbox)
 
                 angle_offset = (target_x - (depthai_utils.NN_IMG_SIZE / 2)) * 68.7938003540039 / 1080
@@ -83,7 +85,10 @@ class Main:
                 cv2.rectangle(edgeFrame, (bbox['x_min'], bbox['y_min']), (bbox['x_max'], bbox['y_max']),
                               (255, 255, 255), 2)
 
-                self.oak_1_stream.sendFrame(edgeFrame)
+                cv2.circle(edgeFrame, (int(round(target_x, 0)), int(round(target_y, 0))), radius=5, color=(128, 128, 128), thickness=-1)
+
+            self.oak_1_stream.sendFrame(edgeFrame)
+
         elif device_name == "OAK-2":
             valid_labels = ['powercell']
 
@@ -150,6 +155,8 @@ class MainDebug(Main):
 
             cv2.imshow("OAK-1", frame)
             cv2.imshow("OAK-1 Edge", edgeFrame)
+
+            self.oak_1_stream.sendFrame(edgeFrame)
 
         elif device_name == "OAK-2":
             valid_labels = ['powercell']

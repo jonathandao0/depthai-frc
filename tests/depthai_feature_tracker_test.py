@@ -6,6 +6,9 @@ import cv2
 import depthai as dai
 from collections import deque
 
+import numpy as np
+
+from common.camera_info import H_CR
 from common.config import NNConfig
 
 
@@ -26,9 +29,8 @@ class FeatureTrackerDrawer:
         pass
 
     def trackFeaturePath(self, features, bboxes):
-
-        newTrackedIDs = set()
         featuresToRemove = set()
+        newTrackedIDs = set()
         for currentFeature in features:
             currentID = currentFeature.id
             newTrackedIDs.add(currentID)
@@ -36,22 +38,24 @@ class FeatureTrackerDrawer:
             if currentID not in self.trackedFeaturesPath:
                 self.trackedFeaturesPath[currentID] = deque()
 
-            exit = False
-            if bboxes:
-                for detection in bboxes:
-                    y_min = int(detection['y_min'] * (2.0 / 3.0))
-                    y_max = int(detection['y_max'] * (2.0 / 3.0))
-                    x_min = int(detection['x_min'] * (2.0 / 3.0))
-                    x_max = int(detection['x_max'] * (2.0 / 3.0))
-                    point = currentFeature.position
-
-                    if point.x < x_min or point.x > x_max or point.y < y_min or point.y > y_max:
-                        featuresToRemove.add(currentID)
-
             path = self.trackedFeaturesPath[currentID]
 
-            path.append(currentFeature.position)
-            while(len(path) > max(1, FeatureTrackerDrawer.trackedFeaturesPathLength)):
+            if bboxes:
+                for detection in bboxes:
+                    y_min = int(detection['y_min'] - 360)
+                    y_max = int(detection['y_max'] + 360)
+                    x_min = int(detection['x_min'] - 640)
+                    x_max = int(detection['x_max'] + 640)
+                    point = currentFeature.position
+
+                    if x_min < point.x < x_max and y_min < point.y < y_max:
+                        path.append(currentFeature.position)
+                    else:
+                        featuresToRemove.add(currentID)
+            else:
+                path.append(currentFeature.position)
+
+            while (len(path) > max(1, FeatureTrackerDrawer.trackedFeaturesPathLength)):
                 path.popleft()
 
             self.trackedFeaturesPath[currentID] = path
@@ -61,10 +65,8 @@ class FeatureTrackerDrawer:
                 featuresToRemove.add(oldId)
 
         for id in featuresToRemove:
-            try:
+            if id in self.trackedFeaturesPath:
                 self.trackedFeaturesPath.pop(id)
-            except Exception:
-                pass
 
         self.trackedIDs = newTrackedIDs
 
@@ -225,6 +227,10 @@ with dai.Device(pipeline) as device:
 
     # centerWindowName = "center"
     # centerFeatureDrawer = FeatureTrackerDrawer("Feature tracking duration (frames)", centerWindowName)
+    def frameNorm(frame, bbox):
+        normVals = np.full(len(bbox), frame.shape[0])
+        normVals[::2] = frame.shape[1]
+        return (np.clip(np.array(bbox), 0, 1) * normVals).astype(int)
 
     while True:
         frame = previewQueue.get().getCvFrame()
@@ -292,6 +298,42 @@ with dai.Device(pipeline) as device:
         # centerFeatureDrawer.drawFeatures(centerFrame)
 
         # Show the frame
+        for detection in bboxes:
+            # x_shift = int(detection['depth_z'] * 1.25)
+            # scale = detection['depth_z'] * 1.25
+            # bboxNorm = frameNorm(leftFrame, (detection['x_min'] / 416, detection['y_min'] / 416, detection['x_max'] / 416, detection['y_max'] / 416))
+            # bboxNorm = np.array([432 + detection['x_min'],
+            #                      152 + detection['y_min'],
+            #                      432 + detection['x_max'],
+            #                      152 + detection['y_max']])
+            # bboxNorm = np.round(bboxNorm * scale)
+
+            # x1 = detection['x_min']
+            # x2 = detection['x_max']
+            # y1 = detection['y_min']
+            # y2 = detection['y_max']
+            #
+            # pts = np.float32([[x1, y1], [x1, y2], [x2, y2], [x2, y1]]).reshape(-1, 1, 2)
+            # dst = cv2.perspectiveTransform(pts, H_CR)
+            # leftFrame = cv2.polylines(leftFrame, [np.int32(dst)], True, 255, 3, cv2.LINE_AA)
+
+            x_shift = int(detection['depth_z'] * 47.4257) + 286 + int(detection['depth_x'] * -100)
+            y_shift = int(detection['depth_z'] * 40)
+            x1 = x_shift + int((detection['x_min'] / 416 * 720))
+            x2 = x_shift + int((detection['x_max'] / 416 * 720))
+            y1 = y_shift + int((detection['y_min'] / 416 * 720))
+            y2 = y_shift + int((detection['y_max'] / 416 * 720))
+            bboxNorm = (x1, y1, x2, y2)
+
+            cv2.rectangle(leftFrame, (bboxNorm[0], bboxNorm[1]), (bboxNorm[2], bboxNorm[3]), (0, 255, 0), 2)
+
+            x_shift = int(detection['depth_z'] * 47.4257) + 143 + int(detection['depth_x'] * -100)
+            x1 = x_shift + int((detection['x_min'] / 416 * 720))
+            x2 = x_shift + int((detection['x_max'] / 416 * 720))
+            bboxNorm = (x1, y1, x2, y2)
+
+            cv2.rectangle(rightFrame, (bboxNorm[0], bboxNorm[1]), (bboxNorm[2], bboxNorm[3]), (0, 255, 0), 2)
+
         cv2.imshow(leftWindowName, leftFrame)
         cv2.imshow(rightWindowName, rightFrame)
         # cv2.imshow(centerWindowName, centerFrame)

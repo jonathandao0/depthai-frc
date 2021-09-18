@@ -144,7 +144,8 @@ class MainDebug(Main):
         # distance_results = super().parse_frame(frame, results)
 
         for result in results['bboxes']:
-            if result['label'] != 5:
+            if depthai_utils.LABELS[result['label']] != 'red_upper_power_port' and \
+                    depthai_utils.LABELS[result['label']] != 'blue_upper_power_port':
                 continue
 
             if 'featuredata' not in results:
@@ -190,19 +191,19 @@ class MainDebug(Main):
                 object_pos = np.array([landmark_pos[0], landmark_pos[2], landmark_pos[1]]).reshape((3, 1))
                 camera_pos = np.matmul(rMat.T, object_pos - tVec)
 
-                x_pos = camera_pos[0][0]
-                y_pos = camera_pos[1][0]
+                x_pos = -camera_pos[0][0]
+                y_pos = -camera_pos[1][0]
                 z_pos = camera_pos[2][0]
 
                 # Avoid mirrors (https://github.com/opencv/opencv/issues/8813#issuecomment-359079875)
-                if x_pos < 0:
-                    x_pos = -x_pos
-                elif x_pos > FIELD_WIDTH:
-                    x_pos = x_pos - FIELD_WIDTH
-                if z_pos < 0:
-                    z_pos = -z_pos
-                elif z_pos > FIELD_HEIGHT:
-                    z_pos = z_pos - FIELD_HEIGHT
+                # if x_pos < 0:
+                #     x_pos = -x_pos
+                # elif x_pos > FIELD_WIDTH:
+                #     x_pos = x_pos - FIELD_WIDTH
+                # if z_pos < 0:
+                #     z_pos = -z_pos
+                # elif z_pos > FIELD_HEIGHT:
+                #     z_pos = z_pos - FIELD_HEIGHT
 
                 self.robot_pose3d = (x_pos, y_pos, z_pos, landmark_pos[3] - rotation_deg[0])
 

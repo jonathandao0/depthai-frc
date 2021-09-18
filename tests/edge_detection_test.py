@@ -14,6 +14,7 @@ res = cv2.findContours(thresh, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
 contours = res[-2]
 # contours = res[0] if len(res) == 2 else res[1]
 if len(contours) > 0:
+    contours = sorted(contours, key=cv2.contourArea, reverse=True)
     largest_contour = max(contours, key=cv2.contourArea)
 
     result = np.zeros_like(edgeFrame)
@@ -26,11 +27,15 @@ if len(contours) > 0:
 
     edgeFrame = cv2.bitwise_or(edgeFrame, result)
 
-edgeFrame = cv2.rectangle(edgeFrame, (bbox['x_min'], bbox['y_min']), (bbox['x_max'], bbox['y_max']), (150, 150, 150), 2)
+    edgeFrame = cv2.rectangle(edgeFrame, (bbox['x_min'], bbox['y_min']), (bbox['x_max'], bbox['y_max']), (150, 150, 150), 2)
+    blankFrame = np.zeros_like(edgeFrame)
+    contourFrame = cv2.drawContours(blankFrame, contours[0:2], -1, (255, 255, 255), 1)
 
 while True:
     cv2.imshow("edges", edgeFrame)
     cv2.imshow("edgesR", result)
+
+    cv2.imshow("largest", contourFrame)
 
     key = cv2.waitKey(1)
 

@@ -18,7 +18,7 @@ root.addHandler(rotateHandler)
 root.setLevel(logging.INFO)
 root.info("Logging system initialized, kept in file {}...".format(logfile))
 
-MODEL_NAME = "infiniteRecharge2020sandbox"
+MODEL_NAME = "infiniteRecharge2021"
 NN_IMG_SIZE = 416
 DEBUG = os.getenv('DEBUG', 'true') not in ('false', '0')
 
