@@ -3,13 +3,14 @@
 import argparse
 import cv2
 import depthai as dai
-from _pynetworktables import NetworkTablesInstance
+import socket
 
 import goal_detection_depthai_utils
 import object_detection_depthai_utils
 import logging
 import target_detection
 
+from _pynetworktables import NetworkTablesInstance
 from common.mjpeg_stream import MjpegStream
 from networktables.util import NetworkTables
 from utils import FPSHandler
@@ -119,7 +120,12 @@ class Main:
             self.NT_Instance.startServer()
         else:
             log.info("Setting up NetworkTables client for team {}".format(team))
-            self.NT_Instance.startClientTeam(team)
+            self.NT_Instance.startClient([
+                '127.0.0.1:1735',
+                '10.0.0.2:1735'
+                '192.168.100.108:1735'
+            ])
+            # self.NT_Instance.startClientTeam(4201)
             self.NT_Instance.startDSClient()
 
         if NetworkTables.isConnected():
