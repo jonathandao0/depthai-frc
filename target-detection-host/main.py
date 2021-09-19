@@ -28,6 +28,7 @@ class Main:
         for device in dai.Device.getAllAvailableDevices():
             print(f"{device.getMxId()} {device.state}")
 
+        self.init_networktables()
         # if not self.init_networktables():
         #     return
 
