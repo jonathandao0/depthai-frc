@@ -43,6 +43,7 @@ class Main:
         self.object_pipeline, self.object_labels = object_detection_depthai_utils.create_pipeline("infiniteRecharge2021")
         self.oak_1_stream = MjpegStream(4201)
         self.oak_2_stream = MjpegStream(4202)
+        self.run_networktables()
 
     def parse_goal_frame(self, frame, bboxes, edgeFrame):
         valid_labels = ['red_upper_power_port', 'blue_upper_power_port']
@@ -122,7 +123,7 @@ class Main:
 
     def run(self):
         log.info("Setup complete, parsing frames...")
-        self.run_networktables()
+        
         try:
             found_1, device_info_1 = dai.Device.getDeviceByMxId(self.device_list['OAK-1']['id'])
             self.device_list['OAK-1']['nt_tab'].putBoolean("OAK-1 Status", found_1)
