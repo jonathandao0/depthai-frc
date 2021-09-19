@@ -105,12 +105,12 @@ class Main:
     def run(self):
         log.info("Setup complete, parsing frames...")
         try:
-            found_1, device_info_1 = depthai.Device.getDeviceByMxId(self.device_list['OAK-1']['id'])
+            found_1, device_info_1 = dai.Device.getDeviceByMxId(self.device_list['OAK-1']['id'])
 
             for frame, bboxes, edgeFrame in goal_detection_depthai_utils.capture(device_info_1):
                 self.parse_goal_frame(frame, bboxes, edgeFrame, self.device_list['OAK-1'])
 
-            found_2, device_info_2 = depthai.Device.getDeviceByMxId(self.device_list['OAK-2']['id'])
+            found_2, device_info_2 = dai.Device.getDeviceByMxId(self.device_list['OAK-2']['id'])
 
             for frame, bboxes in goal_detection_depthai_utils.capture(device_info_2):
                 self.parse_object_frame(frame, bboxes, self.device_list['OAK-2'])
