@@ -25,7 +25,7 @@ def create_pipeline(model_name):
     edgeDetectorRgb = pipeline.createEdgeDetector()
     edgeManip = pipeline.createImageManip()
 
-    xoutRgb = pipeline.createXLinkOut()
+    # xoutRgb = pipeline.createXLinkOut()
     rgbControl = pipeline.createXLinkIn()
     xinRgb = pipeline.createXLinkIn()
     xoutNN = pipeline.createXLinkOut()
@@ -33,7 +33,7 @@ def create_pipeline(model_name):
     edgeNN = pipeline.createXLinkOut()
     xinEdgeCfg = pipeline.createXLinkIn()
 
-    xoutRgb.setStreamName("rgb")
+    # xoutRgb.setStreamName("rgb")
     xinRgb.setStreamName("rgbCfg")
     rgbControl.setStreamName('rgbControl')
     xoutNN.setStreamName("detections")
@@ -73,7 +73,7 @@ def create_pipeline(model_name):
     # Linking
     camRgb.preview.link(detectionNetwork.input)
     # detectionNetwork.passthrough.link(xoutRgb.input)
-    camRgb.preview.link(xoutRgb.input)
+    # camRgb.preview.link(xoutRgb.input)
     rgbControl.out.link(camRgb.inputControl)
     xinRgb.out.link(camRgb.inputConfig)
     detectionNetwork.out.link(xoutNN.input)
@@ -109,7 +109,7 @@ def init_devices(device_list, pipeline):
 
 def capture(device_info):
     with dai.Device(pipeline, device_info) as device:
-        previewQueue = device.getOutputQueue(name="rgb", maxSize=4, blocking=False)
+        # previewQueue = device.getOutputQueue(name="rgb", maxSize=4, blocking=False)
         detectionNNQueue = device.getOutputQueue(name="detections", maxSize=4, blocking=False)
         # edgeRgbQueue = device.getOutputQueue("edgeRgb", 8, False)
         edgeNNQueue = device.getOutputQueue("edgeNN", 8, False)
@@ -117,7 +117,6 @@ def capture(device_info):
 
         controlQueue = device.getInputQueue('rgbControl')
         configQueue = device.getInputQueue('rgbCfg')
-
 
         while True:
             cfg = dai.CameraControl()
@@ -127,10 +126,11 @@ def capture(device_info):
             cfg.setAutoExposureCompensation(-6)
             configQueue.send(cfg)
 
-            frame = previewQueue.get().getCvFrame()
+            # frame = previewQueue.get().getCvFrame()
             inDet = detectionNNQueue.tryGet()
             # edgeFrame = edgeRgbQueue.get().getFrame()
             edgeFrame = edgeNNQueue.get().getFrame()
+            frame = edgeFrame
 
             detections = []
             if inDet is not None:
