@@ -56,6 +56,9 @@ class Main:
             edgeFrame, target_x, target_y = target_detection.find_largest_contour(edgeFrame, bbox)
 
             angle_offset = (target_x - (goal_detection_depthai_utils.NN_IMG_SIZE / 2)) * 68.7938003540039 / 1080
+
+            log.info("Found target '{}'\tX Angle Offset: {}".format(target_label, target_x))
+
             nt_tab.putString("Target", target_label)
             nt_tab.putNumber("tx", angle_offset)
 
