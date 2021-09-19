@@ -28,7 +28,6 @@ class Main:
         for device in dai.Device.getAllAvailableDevices():
             print(f"{device.getMxId()} {device.state}")
 
-        self.NT_Instance = NetworkTablesInstance.getDefault()
         self.init_networktables()
         self.device_list = {"OAK-1": {
             'name': "OAK-1",
@@ -112,25 +111,20 @@ class Main:
         nt_tab.putBoolean("Indexer Full", power_cell_counter >= 5)
         self.oak_2_stream.sendFrame(frame)
 
-    def init_networktables(self, server=False):
-        team = 4201
+    def init_networktables(self):
+        NetworkTables.startClientTeam(4201)
 
-        if server:
-            log.info("Setting up NetworkTables server")
-            self.NT_Instance.startServer()
-        else:
-            log.info("Setting up NetworkTables client for team {}".format(team))
-            self.NT_Instance.startClient([
-                '127.0.0.1:1735',
-                '10.42.1.2:1735',
-                '10.0.0.2:1735',
-                '192.168.100.108:1735'
+        if not NetworkTables.isConnected():
+            log.info("Could not connect to team client. Trying other addresses...")
+            NetworkTables.startClient([
+                '10.42.1.2',
+                '10.0.0.2',
+                '127.0.0.1',
+                '192.168.100.108'
             ])
-            # self.NT_Instance.startClientTeam(4201)
-            self.NT_Instance.startDSClient()
 
         if NetworkTables.isConnected():
-            log.info("Connected to NetworkTables")
+            log.info("NT Connected to {}".format(NetworkTables.getRemoteAddress()))
         else:
             log.error("Could not connect to NetworkTables")
 
