@@ -48,8 +48,8 @@ class Main:
         self.object_pipeline, self.object_labels = object_depthai_utils.create_pipeline("infiniteRecharge2021")
 
         self.ip_address = socket.gethostname()
-        self.oak_1_stream = MjpegStream(IP_ADDRESS=self.ip_address, HTTP_PORT=4201)
-        self.oak_2_stream = MjpegStream(IP_ADDRESS=self.ip_address, HTTP_PORT=4202)
+        self.oak_1_stream = MjpegStream(HTTP_PORT=4201)
+        self.oak_2_stream = MjpegStream(HTTP_PORT=4202)
 
     def parse_goal_frame(self, frame, bboxes, edgeFrame):
         valid_labels = ['red_upper_power_port', 'blue_upper_power_port']
