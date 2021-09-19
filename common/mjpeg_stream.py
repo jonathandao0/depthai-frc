@@ -46,9 +46,9 @@ class ThreadedHTTPServer(ThreadingMixIn, HTTPServer):
 
 
 class MjpegStream:
-    def __init__(self, HTTP_SERVER_PORT):
+    def __init__(self, IP_ADDRESS=SERVER_IP, HTTP_PORT=8090):
         # start MJPEG HTTP Server
-        self.server_HTTP = ThreadedHTTPServer((SERVER_IP, HTTP_SERVER_PORT), VideoStreamHandler)
+        self.server_HTTP = ThreadedHTTPServer((IP_ADDRESS, HTTP_PORT), VideoStreamHandler)
         th = threading.Thread(target=self.server_HTTP.serve_forever)
         th.daemon = True
         th.start()
