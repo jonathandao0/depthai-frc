@@ -1,21 +1,15 @@
-import logging
+#!/usr/bin/env python3
 
 import argparse
-
 import cv2
-import depthai
 import depthai as dai
-import numpy as np
-
+import goal_detection_depthai_utils
+import object_detection_depthai_utils
+import logging
 import target_detection
 
-from networktables.util import NetworkTables
-
-import depthai_utils
-import contextlib
-
-from common.config import MODEL_NAME
 from common.mjpeg_stream import MjpegStream
+from networktables.util import NetworkTables
 from utils import FPSHandler
 
 parser = argparse.ArgumentParser()
@@ -44,63 +38,82 @@ class Main:
             'nt_tab': NetworkTables.getTable("OAK-2")
         }}
 
-        self.pipeline, self.labels = depthai_utils.create_pipeline("infiniteRecharge2021")
+        self.goal_pipeline, self.goal_labels = goal_detection_depthai_utils.create_pipeline("infiniteRecharge2021")
+        self.object_pipeline, self.object_labels = object_detection_depthai_utils.create_pipeline("infiniteRecharge2021")
         self.oak_1_stream = MjpegStream(1182)
         self.oak_2_stream = MjpegStream(1183)
         # self.devices = depthai_utils.init_devices(self.device_list, self.pipeline)
 
-    def parse_frame(self, frame, bboxes, edgeFrame, device):
-        device_name = device['name']
+    def parse_goal_frame(self, frame, bboxes, edgeFrame, device):
+        valid_labels = ['red_upper_power_port', 'blue_upper_power_port']
 
-        if device_name == "OAK-1":
-            valid_labels = ['red_upper_power_port', 'blue_upper_power_port']
+        nt_tab = self.device_list['OAK-1']['nt_tab']
+        for bbox in bboxes:
+            target_label = self.labels[bbox['label']]
+            if target_label not in valid_labels:
+                continue
 
-            nt_tab = self.device_list['OAK-1']['nt_tab']
-            for bbox in bboxes:
-                target_label = self.labels[bbox['label']]
-                if target_label not in valid_labels:
-                    continue
+            edgeFrame, target_x, target_y = target_detection.find_largest_contour(edgeFrame, bbox)
 
-                edgeFrame, target_x, target_y = target_detection.find_largest_contour(edgeFrame, bbox)
+            target_x = target_detection.find_target_center(edgeFrame, bbox)
 
-                target_x = target_detection.find_target_center(edgeFrame, bbox)
+            angle_offset = (target_x - (goal_detection_depthai_utils.NN_IMG_SIZE / 2)) * 68.7938003540039 / 1080
+            nt_tab.putString("Target", target_label)
+            nt_tab.putNumber("tx", angle_offset)
 
-                angle_offset = (target_x - (depthai_utils.NN_IMG_SIZE / 2)) * 68.7938003540039 / 1080
-                nt_tab.putString("Target", target_label)
-                nt_tab.putNumber("tx", angle_offset)
+            # cv2.rectangle(frame, (bbox['x_min'], bbox['y_min']), (bbox['x_max'], bbox['y_max']),
+            #               (0, 255, 0), 2)
+            # cv2.putText(frame, "x: {}".format(round(bbox['x_mid'], 2)), (bbox['x_min'], bbox['y_min'] + 30),
+            #             cv2.FONT_HERSHEY_TRIPLEX, 0.5, (255, 255, 255))
+            # cv2.putText(frame, "y: {}".format(round(bbox['y_mid'], 2)), (bbox['x_min'], bbox['y_min'] + 50),
+            #             cv2.FONT_HERSHEY_TRIPLEX, 0.5, (255, 255, 255))
+            # cv2.putText(frame, "angle: {}".format(round(angle_offset, 2)), (bbox['x_min'], bbox['y_min'] + 70),
+            #             cv2.FONT_HERSHEY_TRIPLEX, 0.5, (255, 255, 255))
+            # cv2.putText(frame, "conf: {}".format(round(bbox['confidence'], 2)), (bbox['x_min'], bbox['y_min'] + 90),
+            #             cv2.FONT_HERSHEY_TRIPLEX, 0.5, (255, 255, 255))
+            # cv2.putText(frame, "label: {}".format(self.labels[bbox['label']], 1), (bbox['x_min'], bbox['y_min'] + 110),
+            #             cv2.FONT_HERSHEY_TRIPLEX, 0.5, (255, 255, 255))
 
-                # cv2.rectangle(frame, (bbox['x_min'], bbox['y_min']), (bbox['x_max'], bbox['y_max']),
-                #               (0, 255, 0), 2)
-                # cv2.putText(frame, "x: {}".format(round(bbox['x_mid'], 2)), (bbox['x_min'], bbox['y_min'] + 30),
-                #             cv2.FONT_HERSHEY_TRIPLEX, 0.5, (255, 255, 255))
-                # cv2.putText(frame, "y: {}".format(round(bbox['y_mid'], 2)), (bbox['x_min'], bbox['y_min'] + 50),
-                #             cv2.FONT_HERSHEY_TRIPLEX, 0.5, (255, 255, 255))
-                # cv2.putText(frame, "angle: {}".format(round(angle_offset, 2)), (bbox['x_min'], bbox['y_min'] + 70),
-                #             cv2.FONT_HERSHEY_TRIPLEX, 0.5, (255, 255, 255))
-                # cv2.putText(frame, "conf: {}".format(round(bbox['confidence'], 2)), (bbox['x_min'], bbox['y_min'] + 90),
-                #             cv2.FONT_HERSHEY_TRIPLEX, 0.5, (255, 255, 255))
-                # cv2.putText(frame, "label: {}".format(self.labels[bbox['label']], 1), (bbox['x_min'], bbox['y_min'] + 110),
-                #             cv2.FONT_HERSHEY_TRIPLEX, 0.5, (255, 255, 255))
+            cv2.rectangle(edgeFrame, (bbox['x_min'], bbox['y_min']), (bbox['x_max'], bbox['y_max']), (255, 255, 255), 2)
 
-                cv2.rectangle(edgeFrame, (bbox['x_min'], bbox['y_min']), (bbox['x_max'], bbox['y_max']),
-                              (255, 255, 255), 2)
+            cv2.circle(edgeFrame, (int(round(target_x, 0)), int(round(target_y, 0))), radius=5, color=(128, 128, 128), thickness=-1)
 
-                cv2.circle(edgeFrame, (int(round(target_x, 0)), int(round(target_y, 0))), radius=5, color=(128, 128, 128), thickness=-1)
+        self.oak_1_stream.sendFrame(edgeFrame)
 
-            self.oak_1_stream.sendFrame(edgeFrame)
+    def parse_object_frame(self, frame, bboxes, device):
+        valid_labels = ['power_cell']
 
-        elif device_name == "OAK-2":
-            valid_labels = ['powercell']
+        nt_tab = self.device_list['OAK-2']['nt_tab']
+        power_cell_counter = 0
+        for bbox in bboxes:
+            target_label = self.labels[bbox['label']]
+
+            if target_label not in valid_labels:
+                continue
+
+            power_cell_counter = power_cell_counter + 1
+
+        box_color = (255, 255, 0)
+        if power_cell_counter >= 5:
+            box_color = (0, 255, 0)
+
+        for bbox in bboxes:
+            cv2.rectangle(frame, (bbox['x_min'], bbox['y_min']), (bbox['x_max'], bbox['y_max']), box_color, 2)
+
+        nt_tab.putNumber("Powercells", power_cell_counter)
 
     def run(self):
         log.info("Setup complete, parsing frames...")
         try:
-            for device in self.device_list:
-                device_id = self.device_list[device]['id']
-                found, device_info = depthai.Device.getDeviceByMxId(device_id)
+            found_1, device_info_1 = depthai.Device.getDeviceByMxId(self.device_list['OAK-1']['id'])
 
-                for frame, bboxes, edgeFrame in depthai_utils.capture(device_info):
-                    self.parse_frame(frame, bboxes, edgeFrame, self.device_list[device])
+            for frame, bboxes, edgeFrame in goal_detection_depthai_utils.capture(device_info_1):
+                self.parse_goal_frame(frame, bboxes, edgeFrame, self.device_list['OAK-1'])
+
+            found_2, device_info_2 = depthai.Device.getDeviceByMxId(self.device_list['OAK-2']['id'])
+
+            for frame, bboxes in goal_detection_depthai_utils.capture(device_info_2):
+                self.parse_object_frame(frame, bboxes, self.device_list['OAK-2'])
 
         finally:
             pass
@@ -113,53 +126,44 @@ class MainDebug(Main):
     def __init__(self):
         super().__init__()
 
-    def parse_frame(self, frame, bboxes, edgeFrame, device):
-        device_name = device['name']
+    def parse_goal_frame(self, frame, bboxes, edgeFrame, device):
+        valid_labels = ['red_upper_power_port', 'blue_upper_power_port']
 
-        if device_name == "OAK-1":
-            valid_labels = ['red_upper_power_port', 'blue_upper_power_port']
+        nt_tab = self.device_list['OAK-1']['nt_tab']
+        for bbox in bboxes:
+            target_label = self.labels[bbox['label']]
 
-            nt_tab = self.device_list['OAK-1']['nt_tab']
-            for bbox in bboxes:
-                target_label = self.labels[bbox['label']]
+            if target_label not in valid_labels:
+                continue
 
-                if target_label not in valid_labels:
-                    continue
+            edgeFrame, target_x, target_y = target_detection.find_largest_contour(edgeFrame, bbox)
 
-                edgeFrame, target_x, target_y = target_detection.find_largest_contour(edgeFrame, bbox)
+            angle_offset = (target_x - (goal_detection_depthai_utils.NN_IMG_SIZE / 2)) * 68.7938003540039 / 1080
+            nt_tab.putString("Target", target_label)
+            nt_tab.putNumber("tx", angle_offset)
 
-                angle_offset = (target_x - (depthai_utils.NN_IMG_SIZE / 2)) * 68.7938003540039 / 1080
-                nt_tab.putString("Target", target_label)
-                nt_tab.putNumber("tx", angle_offset)
+            cv2.rectangle(frame, (bbox['x_min'], bbox['y_min']), (bbox['x_max'], bbox['y_max']), (0, 255, 0), 2)
+            cv2.putText(frame, "x: {}".format(round(target_x, 2)), (bbox['x_min'], bbox['y_min'] + 30),
+                        cv2.FONT_HERSHEY_TRIPLEX, 0.5, (255, 255, 255))
+            cv2.putText(frame, "y: {}".format(round(bbox['y_mid'], 2)), (bbox['x_min'], bbox['y_min'] + 50),
+                        cv2.FONT_HERSHEY_TRIPLEX, 0.5, (255, 255, 255))
+            cv2.putText(frame, "angle: {}".format(round(angle_offset, 2)), (bbox['x_min'], bbox['y_min'] + 70),
+                        cv2.FONT_HERSHEY_TRIPLEX, 0.5, (255, 255, 255))
+            cv2.putText(frame, "conf: {}".format(round(bbox['confidence'], 2)), (bbox['x_min'], bbox['y_min'] + 90),
+                        cv2.FONT_HERSHEY_TRIPLEX, 0.5, (255, 255, 255))
+            cv2.putText(frame, "label: {}".format(self.labels[bbox['label']], 1), (bbox['x_min'], bbox['y_min'] + 110),
+                        cv2.FONT_HERSHEY_TRIPLEX, 0.5, (255, 255, 255))
 
-                cv2.rectangle(frame, (bbox['x_min'], bbox['y_min']), (bbox['x_max'], bbox['y_max']),
-                              (0, 255, 0), 2)
-                cv2.putText(frame, "x: {}".format(round(target_x, 2)), (bbox['x_min'], bbox['y_min'] + 30),
-                            cv2.FONT_HERSHEY_TRIPLEX, 0.5, (255, 255, 255))
-                cv2.putText(frame, "y: {}".format(round(bbox['y_mid'], 2)), (bbox['x_min'], bbox['y_min'] + 50),
-                            cv2.FONT_HERSHEY_TRIPLEX, 0.5, (255, 255, 255))
-                cv2.putText(frame, "angle: {}".format(round(angle_offset, 2)), (bbox['x_min'], bbox['y_min'] + 70),
-                            cv2.FONT_HERSHEY_TRIPLEX, 0.5, (255, 255, 255))
-                cv2.putText(frame, "conf: {}".format(round(bbox['confidence'], 2)), (bbox['x_min'], bbox['y_min'] + 90),
-                            cv2.FONT_HERSHEY_TRIPLEX, 0.5, (255, 255, 255))
-                cv2.putText(frame, "label: {}".format(self.labels[bbox['label']], 1), (bbox['x_min'], bbox['y_min'] + 110),
-                            cv2.FONT_HERSHEY_TRIPLEX, 0.5, (255, 255, 255))
+            cv2.rectangle(edgeFrame, (bbox['x_min'], bbox['y_min']), (bbox['x_max'], bbox['y_max']), (255, 255, 255), 2)
 
-                cv2.rectangle(edgeFrame, (bbox['x_min'], bbox['y_min']), (bbox['x_max'], bbox['y_max']),
-                              (255, 255, 255), 2)
+            cv2.rectangle(edgeFrame, (bbox['x_min'], bbox['y_min']), (bbox['x_max'], bbox['y_max']), (255, 255, 255), 2)
 
-                cv2.rectangle(edgeFrame, (bbox['x_min'], bbox['y_min']), (bbox['x_max'], bbox['y_max']),
-                              (255, 255, 255), 2)
+            cv2.circle(edgeFrame, (int(round(target_x, 0)), int(round(target_y, 0))), radius=5, color=(128, 128, 128), thickness=-1)
 
-                cv2.circle(edgeFrame, (int(round(target_x, 0)), int(round(target_y, 0))), radius=5, color=(128, 128, 128), thickness=-1)
+        cv2.imshow("OAK-1", frame)
+        cv2.imshow("OAK-1 Edge", edgeFrame)
 
-            cv2.imshow("OAK-1", frame)
-            cv2.imshow("OAK-1 Edge", edgeFrame)
-
-            self.oak_1_stream.sendFrame(edgeFrame)
-
-        elif device_name == "OAK-2":
-            valid_labels = ['powercell']
+        self.oak_1_stream.sendFrame(edgeFrame)
 
         key = cv2.waitKey(1)
 

@@ -1,13 +1,10 @@
-import contextlib
-import logging
-import uuid
-from pathlib import Path
+#!/usr/bin/env python3
 
-import cv2
 import depthai as dai
+import uuid
 
 from common.config import *
-from imutils.video import FPS
+from pathlib import Path
 
 log = logging.getLogger(__name__)
 
@@ -25,7 +22,7 @@ def create_pipeline(model_name):
     edgeDetectorRgb = pipeline.createEdgeDetector()
     edgeManip = pipeline.createImageManip()
 
-    # xoutRgb = pipeline.createXLinkOut()
+    xoutRgb = pipeline.createXLinkOut()
     rgbControl = pipeline.createXLinkIn()
     xinRgb = pipeline.createXLinkIn()
     xoutNN = pipeline.createXLinkOut()
@@ -33,7 +30,7 @@ def create_pipeline(model_name):
     edgeNN = pipeline.createXLinkOut()
     xinEdgeCfg = pipeline.createXLinkIn()
 
-    # xoutRgb.setStreamName("rgb")
+    xoutRgb.setStreamName("rgb")
     xinRgb.setStreamName("rgbCfg")
     rgbControl.setStreamName('rgbControl')
     xoutNN.setStreamName("detections")
@@ -73,7 +70,7 @@ def create_pipeline(model_name):
     # Linking
     camRgb.preview.link(detectionNetwork.input)
     # detectionNetwork.passthrough.link(xoutRgb.input)
-    # camRgb.preview.link(xoutRgb.input)
+    camRgb.preview.link(xoutRgb.input)
     rgbControl.out.link(camRgb.inputControl)
     xinRgb.out.link(camRgb.inputConfig)
     detectionNetwork.out.link(xoutNN.input)
@@ -89,29 +86,11 @@ def create_pipeline(model_name):
     return pipeline, labels
 
 
-def init_devices(device_list, pipeline):
-    devices = {}
-
-    for device_name, device_params in device_list.items():
-        found_device, device_info = dai.Device.getDeviceByMxId(device_params['id'])
-
-        if not found_device:
-            log.warning("Device {}: Not Found".format(device_name))
-            continue
-
-        device = dai.Device(pipeline, device_info)
-        device.startPipeline()
-
-        devices[device_params['name']] = device
-
-    return devices
-
-
 def capture(device_info):
     with dai.Device(pipeline, device_info) as device:
-        # previewQueue = device.getOutputQueue(name="rgb", maxSize=4, blocking=False)
+        previewQueue = device.getOutputQueue(name="rgb", maxSize=4, blocking=False)
         detectionNNQueue = device.getOutputQueue(name="detections", maxSize=4, blocking=False)
-        # edgeRgbQueue = device.getOutputQueue("edgeRgb", 8, False)
+        edgeRgbQueue = device.getOutputQueue("edgeRgb", 8, False)
         edgeNNQueue = device.getOutputQueue("edgeNN", 8, False)
         edgeCfgQueue = device.getInputQueue("edgeCfg")
 
@@ -126,11 +105,10 @@ def capture(device_info):
             cfg.setAutoExposureCompensation(-6)
             configQueue.send(cfg)
 
-            # frame = previewQueue.get().getCvFrame()
+            frame = previewQueue.get().getCvFrame()
             inDet = detectionNNQueue.tryGet()
             # edgeFrame = edgeRgbQueue.get().getFrame()
             edgeFrame = edgeNNQueue.get().getFrame()
-            frame = edgeFrame
 
             detections = []
             if inDet is not None:
