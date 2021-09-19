@@ -56,7 +56,7 @@ class Main:
             edgeFrame, target_x, target_y = target_detection.find_largest_contour(edgeFrame, bbox)
 
             if target_x == -999 or target_y == -999:
-                log.error("Error: Could not find target contour"
+                log.error("Error: Could not find target contour")
                 continue
 
             angle_offset = (target_x - (goal_detection_depthai_utils.NN_IMG_SIZE / 2.0)) * 68.7938003540039 / 1080
