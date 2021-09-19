@@ -40,8 +40,8 @@ class Main:
 
         self.goal_pipeline, self.goal_labels = goal_detection_depthai_utils.create_pipeline("infiniteRecharge2021")
         self.object_pipeline, self.object_labels = object_detection_depthai_utils.create_pipeline("infiniteRecharge2021")
-        self.oak_1_stream = MjpegStream(1182)
-        self.oak_2_stream = MjpegStream(1183)
+        self.oak_1_stream = MjpegStream(4201)
+        self.oak_2_stream = MjpegStream(4202)
         # self.devices = depthai_utils.init_devices(self.device_list, self.pipeline)
 
     def parse_goal_frame(self, frame, bboxes, edgeFrame, device):
