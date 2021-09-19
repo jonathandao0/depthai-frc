@@ -1,18 +1,11 @@
-import json
-import socketserver
+#!/usr/bin/env python3
+
+import cv2
 import threading
-import time
+
 from http.server import BaseHTTPRequestHandler, HTTPServer
-from io import BytesIO
-from pathlib import Path
-import sys
 from socketserver import ThreadingMixIn
 from time import sleep
-import depthai as dai
-import numpy as np
-import cv2
-from PIL import Image
-import blobconverter
 
 SERVER_IP = 'localhost'
 

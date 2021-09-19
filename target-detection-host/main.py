@@ -42,9 +42,8 @@ class Main:
         self.object_pipeline, self.object_labels = object_detection_depthai_utils.create_pipeline("infiniteRecharge2021")
         self.oak_1_stream = MjpegStream(4201)
         self.oak_2_stream = MjpegStream(4202)
-        # self.devices = depthai_utils.init_devices(self.device_list, self.pipeline)
 
-    def parse_goal_frame(self, frame, bboxes, edgeFrame, device):
+    def parse_goal_frame(self, frame, bboxes, edgeFrame):
         valid_labels = ['red_upper_power_port', 'blue_upper_power_port']
 
         nt_tab = self.device_list['OAK-1']['nt_tab']
@@ -85,7 +84,7 @@ class Main:
 
         self.oak_1_stream.sendFrame(edgeFrame)
 
-    def parse_object_frame(self, frame, bboxes, device):
+    def parse_object_frame(self, frame, bboxes):
         valid_labels = ['power_cell']
 
         nt_tab = self.device_list['OAK-2']['nt_tab']
@@ -106,24 +105,26 @@ class Main:
             cv2.rectangle(frame, (bbox['x_min'], bbox['y_min']), (bbox['x_max'], bbox['y_max']), box_color, 2)
 
         nt_tab.putNumber("Powercells", power_cell_counter)
+        nt_tab.putBoolean("Indexer Full", power_cell_counter >= 5)
+        self.oak_2_stream.sendFrame(frame)
 
     def run(self):
         log.info("Setup complete, parsing frames...")
         try:
             found_1, device_info_1 = dai.Device.getDeviceByMxId(self.device_list['OAK-1']['id'])
+            self.device_list['OAK-1']['nt_tab'].putBoolean("OAK-1 Status", found_1)
 
             for frame, bboxes, edgeFrame in goal_detection_depthai_utils.capture(device_info_1):
-                self.parse_goal_frame(frame, bboxes, edgeFrame, self.device_list['OAK-1'])
+                self.parse_goal_frame(frame, bboxes, edgeFrame)
 
             found_2, device_info_2 = dai.Device.getDeviceByMxId(self.device_list['OAK-2']['id'])
+            self.device_list['OAK-2']['nt_tab'].putBoolean("OAK-2 Status", found_2)
 
             for frame, bboxes in goal_detection_depthai_utils.capture(device_info_2):
-                self.parse_object_frame(frame, bboxes, self.device_list['OAK-2'])
+                self.parse_object_frame(frame, bboxes)
 
         finally:
-            pass
-            # for device in self.devices:
-            #     device.close()
+            log.info("Exiting Program...")
 
 
 class MainDebug(Main):
@@ -131,7 +132,7 @@ class MainDebug(Main):
     def __init__(self):
         super().__init__()
 
-    def parse_goal_frame(self, frame, bboxes, edgeFrame, device):
+    def parse_goal_frame(self, frame, bboxes, edgeFrame):
         valid_labels = ['red_upper_power_port', 'blue_upper_power_port']
 
         nt_tab = self.device_list['OAK-1']['nt_tab']
