@@ -27,6 +27,8 @@ class Main:
         for device in dai.Device.getAllAvailableDevices():
             print(f"{device.getMxId()} {device.state}")
 
+        self.NT_Instance = NetworkTablesInstance.getDefault()
+        self.init_networktables()
         self.device_list = {"OAK-1": {
             'name': "OAK-1",
             'id': "14442C10C14F47D700",
@@ -43,7 +45,6 @@ class Main:
         self.object_pipeline, self.object_labels = object_detection_depthai_utils.create_pipeline("infiniteRecharge2021")
         self.oak_1_stream = MjpegStream(4201)
         self.oak_2_stream = MjpegStream(4202)
-        self.run_networktables()
 
     def parse_goal_frame(self, frame, bboxes, edgeFrame):
         valid_labels = ['red_upper_power_port', 'blue_upper_power_port']
@@ -110,17 +111,21 @@ class Main:
         nt_tab.putBoolean("Indexer Full", power_cell_counter >= 5)
         self.oak_2_stream.sendFrame(frame)
 
-    def run_networktables(self, server=False):
-        ntinst = NetworkTablesInstance.getDefault()
+    def init_networktables(self, server=False):
         team = 4201
-        
+
         if server:
-            print("Setting up NetworkTables server")
-            ntinst.startServer()
+            log.info("Setting up NetworkTables server")
+            self.NT_Instance.startServer()
         else:
-            print("Setting up NetworkTables client for team {}".format(team))
-            ntinst.startClientTeam(team)
-            ntinst.startDSClient()
+            log.info("Setting up NetworkTables client for team {}".format(team))
+            self.NT_Instance.startClientTeam(team)
+            self.NT_Instance.startDSClient()
+
+        if NetworkTables.isConnected():
+            log.info("Connected to NetworkTables")
+        else:
+            log.error("Could not connect to NetworkTables")
 
     def run(self):
         log.info("Setup complete, parsing frames...")
