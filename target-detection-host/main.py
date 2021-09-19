@@ -5,8 +5,8 @@ import cv2
 import depthai as dai
 import socket
 
-import goal_detection_depthai_utils
-import object_detection_depthai_utils
+import goal_depthai_utils
+import object_depthai_utils
 import logging
 import target_detection
 
@@ -28,7 +28,9 @@ class Main:
         for device in dai.Device.getAllAvailableDevices():
             print(f"{device.getMxId()} {device.state}")
 
-        self.init_networktables()
+        if not self.init_networktables():
+            return
+
         self.device_list = {"OAK-1": {
             'name': "OAK-1",
             'id': "14442C10C14F47D700",
@@ -41,8 +43,9 @@ class Main:
             'nt_tab': NetworkTables.getTable("OAK-2")
         }}
 
-        self.goal_pipeline, self.goal_labels = goal_detection_depthai_utils.create_pipeline("infiniteRecharge2021")
-        self.object_pipeline, self.object_labels = object_detection_depthai_utils.create_pipeline("infiniteRecharge2021")
+        self.goal_pipeline, self.goal_labels = goal_depthai_utils.create_pipeline("infiniteRecharge2021")
+        self.object_pipeline, self.object_labels = object_depthai_utils.create_pipeline("infiniteRecharge2021")
+
         self.oak_1_stream = MjpegStream(4201)
         self.oak_2_stream = MjpegStream(4202)
 
@@ -50,6 +53,8 @@ class Main:
         valid_labels = ['red_upper_power_port', 'blue_upper_power_port']
 
         nt_tab = self.device_list['OAK-1']['nt_tab']
+        nt_tab.putNumber("tv", 1 if len(bboxes) > 0 else 0)
+
         for bbox in bboxes:
             target_label = self.goal_labels[bbox['label']]
             if target_label not in valid_labels:
@@ -61,11 +66,11 @@ class Main:
                 log.error("Error: Could not find target contour")
                 continue
 
-            angle_offset = (target_x - (goal_detection_depthai_utils.NN_IMG_SIZE / 2.0)) * 68.7938003540039 / 1080
+            angle_offset = (target_x - (goal_depthai_utils.NN_IMG_SIZE / 2.0)) * 68.7938003540039 / 1080
 
             log.info("Found target '{}'\tX Angle Offset: {}".format(target_label, angle_offset))
 
-            nt_tab.putString("Target", target_label)
+            nt_tab.putString("target_label", target_label)
             nt_tab.putNumber("tx", angle_offset)
 
             # cv2.rectangle(frame, (bbox['x_min'], bbox['y_min']), (bbox['x_max'], bbox['y_max']),
@@ -103,12 +108,15 @@ class Main:
         box_color = (255, 255, 0)
         if power_cell_counter >= 5:
             box_color = (0, 255, 0)
+        elif power_cell_counter < 3:
+            box_color = (255, 0, 0)
 
         for bbox in bboxes:
             cv2.rectangle(frame, (bbox['x_min'], bbox['y_min']), (bbox['x_max'], bbox['y_max']), box_color, 2)
 
-        nt_tab.putNumber("Powercells", power_cell_counter)
-        nt_tab.putBoolean("Indexer Full", power_cell_counter >= 5)
+        nt_tab.putNumber("powercells", power_cell_counter)
+        nt_tab.putBoolean("indexer_full", power_cell_counter >= 5)
+
         self.oak_2_stream.sendFrame(frame)
 
     def init_networktables(self):
@@ -125,8 +133,10 @@ class Main:
 
         if NetworkTables.isConnected():
             log.info("NT Connected to {}".format(NetworkTables.getRemoteAddress()))
+            return True
         else:
-            log.error("Could not connect to NetworkTables")
+            log.error("Could not connect to NetworkTables. Restarting server...")
+            return False
 
     def run(self):
         log.info("Setup complete, parsing frames...")
@@ -136,14 +146,14 @@ class Main:
             self.device_list['OAK-1']['nt_tab'].putBoolean("OAK-1 Status", found_1)
 
             if found_1:
-                for frame, bboxes, edgeFrame in goal_detection_depthai_utils.capture(device_info_1):
+                for frame, bboxes, edgeFrame in goal_depthai_utils.capture(device_info_1):
                     self.parse_goal_frame(frame, bboxes, edgeFrame)
 
             found_2, device_info_2 = dai.Device.getDeviceByMxId(self.device_list['OAK-2']['id'])
             self.device_list['OAK-2']['nt_tab'].putBoolean("OAK-2 Status", found_2)
 
             if found_2:
-                for frame, bboxes in goal_detection_depthai_utils.capture(device_info_2):
+                for frame, bboxes in goal_depthai_utils.capture(device_info_2):
                     self.parse_object_frame(frame, bboxes)
 
         finally:
@@ -159,6 +169,8 @@ class MainDebug(Main):
         valid_labels = ['red_upper_power_port', 'blue_upper_power_port']
 
         nt_tab = self.device_list['OAK-1']['nt_tab']
+        nt_tab.putNumber("tv", 1 if len(bboxes) > 0 else 0)
+
         for bbox in bboxes:
             target_label = self.goal_labels[bbox['label']]
 
@@ -167,11 +179,11 @@ class MainDebug(Main):
 
             edgeFrame, target_x, target_y = target_detection.find_largest_contour(edgeFrame, bbox)
 
-            angle_offset = (target_x - (goal_detection_depthai_utils.NN_IMG_SIZE / 2.0)) * 68.7938003540039 / 1080
+            angle_offset = (target_x - (goal_depthai_utils.NN_IMG_SIZE / 2.0)) * 68.7938003540039 / 1080
 
             log.info("Found target '{}'\tX Angle Offset: {}".format(target_label, angle_offset))
 
-            nt_tab.putString("Target", target_label)
+            nt_tab.putString("target_label", target_label)
             nt_tab.putNumber("tx", angle_offset)
 
             cv2.rectangle(frame, (bbox['x_min'], bbox['y_min']), (bbox['x_max'], bbox['y_max']), (0, 255, 0), 2)
