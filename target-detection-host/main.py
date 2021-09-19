@@ -122,6 +122,7 @@ class Main:
             log.info("Setting up NetworkTables client for team {}".format(team))
             self.NT_Instance.startClient([
                 '127.0.0.1:1735',
+                '10.42.1.2:1735',
                 '10.0.0.2:1735',
                 '192.168.100.108:1735'
             ])
