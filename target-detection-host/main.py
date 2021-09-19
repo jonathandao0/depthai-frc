@@ -134,14 +134,16 @@ class Main:
             found_1, device_info_1 = dai.Device.getDeviceByMxId(self.device_list['OAK-1']['id'])
             self.device_list['OAK-1']['nt_tab'].putBoolean("OAK-1 Status", found_1)
 
-            for frame, bboxes, edgeFrame in goal_detection_depthai_utils.capture(device_info_1):
-                self.parse_goal_frame(frame, bboxes, edgeFrame)
+            if found_1:
+                for frame, bboxes, edgeFrame in goal_detection_depthai_utils.capture(device_info_1):
+                    self.parse_goal_frame(frame, bboxes, edgeFrame)
 
             found_2, device_info_2 = dai.Device.getDeviceByMxId(self.device_list['OAK-2']['id'])
             self.device_list['OAK-2']['nt_tab'].putBoolean("OAK-2 Status", found_2)
 
-            for frame, bboxes in goal_detection_depthai_utils.capture(device_info_2):
-                self.parse_object_frame(frame, bboxes)
+            if found_2:
+                for frame, bboxes in goal_detection_depthai_utils.capture(device_info_2):
+                    self.parse_object_frame(frame, bboxes)
 
         finally:
             log.info("Exiting Program...")
