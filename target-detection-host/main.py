@@ -28,8 +28,8 @@ class Main:
         for device in dai.Device.getAllAvailableDevices():
             print(f"{device.getMxId()} {device.state}")
 
-        if not self.init_networktables():
-            return
+        # if not self.init_networktables():
+        #     return
 
         self.device_list = {"OAK-1": {
             'name': "OAK-1",
