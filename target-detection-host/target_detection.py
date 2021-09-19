@@ -22,7 +22,7 @@ def find_largest_contour(edgeFrame, bbox):
         edgeFrame = cv2.bitwise_or(edgeFrame, result)
         return edgeFrame, center_x + bbox['x_min'], center_y + bbox['y_min']
     else:
-        return edgeFrame, -5, -5
+        return edgeFrame, -999, -999
 
 
 def find_target_center(edgeFrame, bbox):
