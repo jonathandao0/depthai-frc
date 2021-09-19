@@ -61,7 +61,7 @@ class Main:
 
             angle_offset = (target_x - (goal_detection_depthai_utils.NN_IMG_SIZE / 2.0)) * 68.7938003540039 / 1080
 
-            log.info("Found target '{}'\tX Angle Offset: {}".format(target_label, target_x))
+            log.info("Found target '{}'\tX Angle Offset: {}".format(target_label, angle_offset))
 
             nt_tab.putString("Target", target_label)
             nt_tab.putNumber("tx", angle_offset)
@@ -143,7 +143,10 @@ class MainDebug(Main):
 
             edgeFrame, target_x, target_y = target_detection.find_largest_contour(edgeFrame, bbox)
 
-            angle_offset = (target_x - (goal_detection_depthai_utils.NN_IMG_SIZE / 2)) * 68.7938003540039 / 1080
+            angle_offset = (target_x - (goal_detection_depthai_utils.NN_IMG_SIZE / 2.0)) * 68.7938003540039 / 1080
+
+            log.info("Found target '{}'\tX Angle Offset: {}".format(target_label, angle_offset))
+
             nt_tab.putString("Target", target_label)
             nt_tab.putNumber("tx", angle_offset)
 
@@ -152,7 +155,7 @@ class MainDebug(Main):
                         cv2.FONT_HERSHEY_TRIPLEX, 0.5, (255, 255, 255))
             cv2.putText(frame, "y: {}".format(round(bbox['y_mid'], 2)), (bbox['x_min'], bbox['y_min'] + 50),
                         cv2.FONT_HERSHEY_TRIPLEX, 0.5, (255, 255, 255))
-            cv2.putText(frame, "angle: {}".format(round(angle_offset, 2)), (bbox['x_min'], bbox['y_min'] + 70),
+            cv2.putText(frame, "angle: {}".format(round(angle_offset, 3)), (bbox['x_min'], bbox['y_min'] + 70),
                         cv2.FONT_HERSHEY_TRIPLEX, 0.5, (255, 255, 255))
             cv2.putText(frame, "conf: {}".format(round(bbox['confidence'], 2)), (bbox['x_min'], bbox['y_min'] + 90),
                         cv2.FONT_HERSHEY_TRIPLEX, 0.5, (255, 255, 255))
