@@ -49,7 +49,7 @@ class Main:
 
         nt_tab = self.device_list['OAK-1']['nt_tab']
         for bbox in bboxes:
-            target_label = self.labels[bbox['label']]
+            target_label = self.goal_labels[bbox['label']]
             if target_label not in valid_labels:
                 continue
 
@@ -71,7 +71,7 @@ class Main:
             #             cv2.FONT_HERSHEY_TRIPLEX, 0.5, (255, 255, 255))
             # cv2.putText(frame, "conf: {}".format(round(bbox['confidence'], 2)), (bbox['x_min'], bbox['y_min'] + 90),
             #             cv2.FONT_HERSHEY_TRIPLEX, 0.5, (255, 255, 255))
-            # cv2.putText(frame, "label: {}".format(self.labels[bbox['label']], 1), (bbox['x_min'], bbox['y_min'] + 110),
+            # cv2.putText(frame, "label: {}".format(self.goal_labels[bbox['label']], 1), (bbox['x_min'], bbox['y_min'] + 110),
             #             cv2.FONT_HERSHEY_TRIPLEX, 0.5, (255, 255, 255))
 
             cv2.rectangle(edgeFrame, (bbox['x_min'], bbox['y_min']), (bbox['x_max'], bbox['y_max']), (255, 255, 255), 2)
@@ -86,7 +86,7 @@ class Main:
         nt_tab = self.device_list['OAK-2']['nt_tab']
         power_cell_counter = 0
         for bbox in bboxes:
-            target_label = self.labels[bbox['label']]
+            target_label = self.object_labels[bbox['label']]
 
             if target_label not in valid_labels:
                 continue
@@ -131,7 +131,7 @@ class MainDebug(Main):
 
         nt_tab = self.device_list['OAK-1']['nt_tab']
         for bbox in bboxes:
-            target_label = self.labels[bbox['label']]
+            target_label = self.goal_labels[bbox['label']]
 
             if target_label not in valid_labels:
                 continue
@@ -151,7 +151,7 @@ class MainDebug(Main):
                         cv2.FONT_HERSHEY_TRIPLEX, 0.5, (255, 255, 255))
             cv2.putText(frame, "conf: {}".format(round(bbox['confidence'], 2)), (bbox['x_min'], bbox['y_min'] + 90),
                         cv2.FONT_HERSHEY_TRIPLEX, 0.5, (255, 255, 255))
-            cv2.putText(frame, "label: {}".format(self.labels[bbox['label']], 1), (bbox['x_min'], bbox['y_min'] + 110),
+            cv2.putText(frame, "label: {}".format(self.goal_labels[bbox['label']], 1), (bbox['x_min'], bbox['y_min'] + 110),
                         cv2.FONT_HERSHEY_TRIPLEX, 0.5, (255, 255, 255))
 
             cv2.rectangle(edgeFrame, (bbox['x_min'], bbox['y_min']), (bbox['x_max'], bbox['y_max']), (255, 255, 255), 2)
