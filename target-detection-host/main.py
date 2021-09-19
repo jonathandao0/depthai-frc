@@ -112,18 +112,19 @@ class Main:
 
     def run_networktables(self, server=False):
         ntinst = NetworkTablesInstance.getDefault()
-
+        team = 4201
+        
         if server:
             print("Setting up NetworkTables server")
             ntinst.startServer()
         else:
             print("Setting up NetworkTables client for team {}".format(team))
-            ntinst.startClientTeam(4201)
+            ntinst.startClientTeam(team)
             ntinst.startDSClient()
 
     def run(self):
         log.info("Setup complete, parsing frames...")
-        
+
         try:
             found_1, device_info_1 = dai.Device.getDeviceByMxId(self.device_list['OAK-1']['id'])
             self.device_list['OAK-1']['nt_tab'].putBoolean("OAK-1 Status", found_1)
