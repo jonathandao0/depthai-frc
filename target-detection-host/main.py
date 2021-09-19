@@ -3,6 +3,8 @@
 import argparse
 import cv2
 import depthai as dai
+from _pynetworktables import NetworkTablesInstance
+
 import goal_detection_depthai_utils
 import object_detection_depthai_utils
 import logging
@@ -20,7 +22,6 @@ log = logging.getLogger(__name__)
 
 
 class Main:
-    network_tables = NetworkTables.initialize(server='localhost')
 
     def __init__(self):
         for device in dai.Device.getAllAvailableDevices():
@@ -108,8 +109,20 @@ class Main:
         nt_tab.putBoolean("Indexer Full", power_cell_counter >= 5)
         self.oak_2_stream.sendFrame(frame)
 
+    def run_networktables(self, server=False):
+        ntinst = NetworkTablesInstance.getDefault()
+
+        if server:
+            print("Setting up NetworkTables server")
+            ntinst.startServer()
+        else:
+            print("Setting up NetworkTables client for team {}".format(team))
+            ntinst.startClientTeam(4201)
+            ntinst.startDSClient()
+
     def run(self):
         log.info("Setup complete, parsing frames...")
+        self.run_networktables()
         try:
             found_1, device_info_1 = dai.Device.getDeviceByMxId(self.device_list['OAK-1']['id'])
             self.device_list['OAK-1']['nt_tab'].putBoolean("OAK-1 Status", found_1)
