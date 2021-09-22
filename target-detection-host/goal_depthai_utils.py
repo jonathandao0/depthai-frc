@@ -40,11 +40,15 @@ def create_pipeline(model_name):
 
     # Properties
     camRgb.setPreviewSize(NN_IMG_SIZE, NN_IMG_SIZE)
-    camRgb.setImageOrientation(dai.CameraImageOrientation.ROTATE_180_DEG)
+    # camRgb.setImageOrientation(dai.CameraImageOrientation.ROTATE_180_DEG)
     camRgb.setResolution(dai.ColorCameraProperties.SensorResolution.THE_1080_P)
     camRgb.setInterleaved(False)
     camRgb.setColorOrder(dai.ColorCameraProperties.ColorOrder.BGR)
     camRgb.setFps(60)
+
+    edgeRotation = dai.RotatedRect()
+    edgeRotation.angle = 90
+    edgeManip.initialConfig.setCropRotatedRect(rgbRr, False)
 
     edgeDetectorRgb.setMaxOutputFrameSize(camRgb.getVideoWidth() * camRgb.getVideoHeight())
     edgeManip.initialConfig.setResize(NN_IMG_SIZE, NN_IMG_SIZE)
