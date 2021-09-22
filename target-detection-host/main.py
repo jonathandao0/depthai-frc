@@ -31,7 +31,10 @@ class Main:
 
         self.init_networktables()
 
-        ip_address = socket.gethostbyname(socket.gethostname())
+        s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+        s.connect(("8.8.8.8", 80))
+
+        ip_address = s.getsockname()[0]
         port1 = 4201
         port2 = 4202
 
@@ -86,8 +89,7 @@ class Main:
             nt_tab.putString("target_label", target_label)
             nt_tab.putNumber("tx", angle_offset)
 
-            # cv2.rectangle(frame, (bbox['x_min'], bbox['y_min']), (bbox['x_max'], bbox['y_max']),
-            #               (0, 255, 0), 2)
+            # cv2.rectangle(frame, (bbox['x_min'], bbox['y_min']), (bbox['x_max'], bbox['y_max']),  (0, 255, 0), 2)
             # cv2.putText(frame, "x: {}".format(round(bbox['x_mid'], 2)), (bbox['x_min'], bbox['y_min'] + 30),
             #             cv2.FONT_HERSHEY_TRIPLEX, 0.5, (255, 255, 255))
             # cv2.putText(frame, "y: {}".format(round(bbox['y_mid'], 2)), (bbox['x_min'], bbox['y_min'] + 50),
