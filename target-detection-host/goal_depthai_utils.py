@@ -46,10 +46,6 @@ def create_pipeline(model_name):
     camRgb.setColorOrder(dai.ColorCameraProperties.ColorOrder.BGR)
     camRgb.setFps(60)
 
-    edgeRotation = dai.RotatedRect()
-    edgeRotation.angle = 90
-    edgeManip.initialConfig.setCropRotatedRect(rgbRr, False)
-
     edgeDetectorRgb.setMaxOutputFrameSize(camRgb.getVideoWidth() * camRgb.getVideoHeight())
     edgeManip.initialConfig.setResize(NN_IMG_SIZE, NN_IMG_SIZE)
 

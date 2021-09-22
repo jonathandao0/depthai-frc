@@ -4,7 +4,6 @@ import argparse
 import cv2
 import depthai as dai
 import socket
-import sys
 
 import goal_depthai_utils
 import object_depthai_utils
@@ -13,7 +12,6 @@ import target_detection
 
 from common.mjpeg_stream import MjpegStream
 from networktables.util import NetworkTables
-from time import sleep
 from utils import FPSHandler
 
 parser = argparse.ArgumentParser()
@@ -26,22 +24,29 @@ log = logging.getLogger(__name__)
 class Main:
 
     def __init__(self):
+        log.info("Connected Devices:")
         for device in dai.Device.getAllAvailableDevices():
-            print(f"{device.getMxId()} {device.state}")
+            log.info(f"{device.getMxId()} {device.state}")
 
         self.init_networktables()
+
+        ip_address = socket.gethostbyname(socket.gethostname())
+        port1 = 4201
+        port2 = 4202
 
         self.device_list = {"OAK-1": {
             'name': "OAK-1",
             # 'id': "14442C10C14F47D700",
             'id': "14442C1011043ED700",
             'fps_handler': FPSHandler(),
+            'stream_address': "{}:{}".format(ip_address, port1),
             'nt_tab': NetworkTables.getTable("OAK-1")
         }, "OAK-2": {
             'name': "OAK-2",
             'id': "14442C10C14F47D700",
             # 'id': "14442C1011043ED700",
             'fps_handler': FPSHandler(),
+            'stream_address': "{}:{}".format(ip_address, port2),
             'nt_tab': NetworkTables.getTable("OAK-2")
         }}
 
@@ -49,8 +54,8 @@ class Main:
         self.object_pipeline, self.object_labels = object_depthai_utils.create_pipeline("infiniteRecharge2021")
 
         self.ip_address = socket.gethostname()
-        self.oak_1_stream = MjpegStream(IP_ADDRESS=socket.gethostbyname(socket.gethostname()), HTTP_PORT=4201)
-        self.oak_2_stream = MjpegStream(IP_ADDRESS=socket.gethostbyname(socket.gethostname()), HTTP_PORT=4202)
+        self.oak_1_stream = MjpegStream(IP_ADDRESS=ip_address, HTTP_PORT=port1)
+        self.oak_2_stream = MjpegStream(IP_ADDRESS=ip_address, HTTP_PORT=port2)
 
     def parse_goal_frame(self, frame, bboxes, edgeFrame):
         valid_labels = ['red_upper_power_port', 'blue_upper_power_port']
@@ -149,6 +154,7 @@ class Main:
             self.device_list['OAK-1']['nt_tab'].putBoolean("OAK-1 Status", found_1)
 
             if found_1:
+                self.device_list['OAK-1']['nt_tab'].putString("OAK-1 Stream", self.device_list['OAK-1']['stream_address'])
                 for frame, bboxes, edgeFrame in goal_depthai_utils.capture(device_info_1):
                     self.parse_goal_frame(frame, bboxes, edgeFrame)
 
@@ -156,6 +162,7 @@ class Main:
             self.device_list['OAK-2']['nt_tab'].putBoolean("OAK-2 Status", found_2)
 
             if found_2:
+                self.device_list['OAK-1']['nt_tab'].putString("OAK-2 Stream", self.device_list['OAK-2']['stream_address'])
                 for frame, bboxes in goal_depthai_utils.capture(device_info_2):
                     self.parse_object_frame(frame, bboxes)
 
