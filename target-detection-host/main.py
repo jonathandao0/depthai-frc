@@ -4,15 +4,16 @@ import argparse
 import cv2
 import depthai as dai
 import socket
+import sys
 
 import goal_depthai_utils
 import object_depthai_utils
 import logging
 import target_detection
 
-from _pynetworktables import NetworkTablesInstance
 from common.mjpeg_stream import MjpegStream
 from networktables.util import NetworkTables
+from time import sleep
 from utils import FPSHandler
 
 parser = argparse.ArgumentParser()
@@ -29,17 +30,17 @@ class Main:
             print(f"{device.getMxId()} {device.state}")
 
         self.init_networktables()
-        # if not self.init_networktables():
-        #     return
 
         self.device_list = {"OAK-1": {
             'name': "OAK-1",
-            'id': "14442C10C14F47D700",
+            # 'id': "14442C10C14F47D700",
+            'id': "14442C1011043ED700",
             'fps_handler': FPSHandler(),
             'nt_tab': NetworkTables.getTable("OAK-1")
         }, "OAK-2": {
             'name': "OAK-2",
-            'id': "14442C1091398FD000",
+            'id': "14442C10C14F47D700",
+            # 'id': "14442C1011043ED700",
             'fps_handler': FPSHandler(),
             'nt_tab': NetworkTables.getTable("OAK-2")
         }}
@@ -105,7 +106,7 @@ class Main:
             if target_label not in valid_labels:
                 continue
 
-            power_cell_counter = power_cell_counter + 1
+            power_cell_counter += 1
 
         box_color = (255, 255, 0)
         if power_cell_counter >= 5:
@@ -128,8 +129,8 @@ class Main:
             log.info("Could not connect to team client. Trying other addresses...")
             NetworkTables.startClient([
                 '10.42.1.2',
-                '10.0.0.2',
                 '127.0.0.1',
+                '10.0.0.2',
                 '192.168.100.108'
             ])
 

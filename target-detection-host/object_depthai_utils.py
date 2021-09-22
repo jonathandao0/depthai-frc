@@ -24,13 +24,12 @@ def create_pipeline(model_name):
     rgbControl = pipeline.createXLinkIn()
     xinRgb = pipeline.createXLinkIn()
     xoutNN = pipeline.createXLinkOut()
-    xoutEdgeRgb = pipeline.createXLinkOut()
 
     xoutRgb.setStreamName("rgb")
     xinRgb.setStreamName("rgbCfg")
     rgbControl.setStreamName('rgbControl')
     xoutNN.setStreamName("detections")
-    xoutEdgeRgb.setStreamName("edgeRgb")
+
     # Properties
     camRgb.setPreviewSize(NN_IMG_SIZE, NN_IMG_SIZE)
     camRgb.setImageOrientation(dai.CameraImageOrientation.ROTATE_180_DEG)
@@ -62,7 +61,6 @@ def create_pipeline(model_name):
     # detectionNetwork.passthrough.link(xoutRgb.input)
     camRgb.preview.link(xoutRgb.input)
     detectionNetwork.out.link(xoutNN.input)
-
 
     log.info("Pipeline created.")
 
