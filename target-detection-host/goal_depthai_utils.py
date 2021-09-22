@@ -40,7 +40,7 @@ def create_pipeline(model_name):
 
     # Properties
     camRgb.setPreviewSize(NN_IMG_SIZE, NN_IMG_SIZE)
-    # camRgb.setImageOrientation(dai.CameraImageOrientation.ROTATE_180_DEG)
+    camRgb.setImageOrientation(dai.CameraImageOrientation.ROTATE_180_DEG)
     camRgb.setResolution(dai.ColorCameraProperties.SensorResolution.THE_1080_P)
     camRgb.setInterleaved(False)
     camRgb.setColorOrder(dai.ColorCameraProperties.ColorOrder.BGR)
@@ -90,7 +90,7 @@ def capture(device_info):
     with dai.Device(pipeline, device_info) as device:
         previewQueue = device.getOutputQueue(name="rgb", maxSize=4, blocking=False)
         detectionNNQueue = device.getOutputQueue(name="detections", maxSize=4, blocking=False)
-        edgeRgbQueue = device.getOutputQueue("edgeRgb", 8, False)
+        # edgeRgbQueue = device.getOutputQueue("edgeRgb", 8, False)
         edgeNNQueue = device.getOutputQueue("edgeNN", 8, False)
         edgeCfgQueue = device.getInputQueue("edgeCfg")
 

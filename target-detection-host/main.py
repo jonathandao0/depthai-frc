@@ -3,6 +3,7 @@
 import argparse
 import cv2
 import depthai as dai
+import math
 import socket
 
 import goal_depthai_utils
@@ -36,15 +37,15 @@ class Main:
 
         self.device_list = {"OAK-1": {
             'name': "OAK-1",
-            # 'id': "14442C10C14F47D700",
-            'id': "14442C1011043ED700",
+            'id': "14442C10C14F47D700",
+            # 'id': "14442C1011043ED700",
             'fps_handler': FPSHandler(),
             'stream_address': "{}:{}".format(ip_address, port1),
             'nt_tab': NetworkTables.getTable("OAK-1")
         }, "OAK-2": {
             'name': "OAK-2",
-            'id': "14442C10C14F47D700",
-            # 'id': "14442C1011043ED700",
+            # 'id': "14442C10C14F47D700",
+            'id': "14442C1011043ED700",
             'fps_handler': FPSHandler(),
             'stream_address': "{}:{}".format(ip_address, port2),
             'nt_tab': NetworkTables.getTable("OAK-2")
@@ -76,7 +77,11 @@ class Main:
 
             angle_offset = (target_x - (goal_depthai_utils.NN_IMG_SIZE / 2.0)) * 68.7938003540039 / 1080
 
-            log.info("Found target '{}'\tX Angle Offset: {}".format(target_label, angle_offset))
+            if math.abs(angle_offset) > 30:
+                log.info("Invalid angle offset. Setting it to 0")
+                angle_offset = 0
+            else:
+                log.info("Found target '{}'\tX Angle Offset: {}".format(target_label, angle_offset))
 
             nt_tab.putString("target_label", target_label)
             nt_tab.putNumber("tx", angle_offset)
