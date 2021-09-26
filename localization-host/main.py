@@ -1,22 +1,20 @@
 import argparse
 import logging
+import socket
 
 import cv2
 import depthai_utils
 import numpy as np
 
 from common import image_processing
-from common.camera_info import OAK_L_CAMERA_RIGHT, OAK_L_PARAMS
-from common.config import MODEL_NAME, NN_IMG_SIZE, DEBUG, DETECTION_PADDING
+from common.camera_info import OAK_L_PARAMS
+from common.config import MODEL_NAME
 from common.frame2dwindow import Frame2dWindow
-from common.frame_conversion import pose3d_to_field2d
-from common.mjpeg_stream import MjpegStream
 from distance import DistanceCalculations, DistanceCalculationsDebug
 from common.field_constants import *
 
-from common.networktables_client import NetworkTablesClient
-from common.image_processing import output_perspective_transform, SIFT_PARAMS
-from utils import FPSHandler
+from common.image_processing import SIFT_PARAMS
+from common.utils import FPSHandler
 
 parser = argparse.ArgumentParser()
 parser.add_argument('-d', dest='debug', action="store_true", default=False, help='Start in Debug Mode')
@@ -27,7 +25,7 @@ log = logging.getLogger(__name__)
 
 class Main:
     distance_class = DistanceCalculations
-    nt_class = NetworkTablesClient
+    # nt_class = NetworkTablesClient
 
     labels = None
 
@@ -35,23 +33,32 @@ class Main:
     has_targets = False
 
     def __init__(self):
-        self.nt_client = self.nt_class("localhost", "Depthai")
+        # self.nt_client = self.nt_class("localhost", "Depthai")
         self.pipeline, self.labels = depthai_utils.create_pipeline(MODEL_NAME)
         self.fps = FPSHandler()
 
         self.robot_pose3d = [FIELD_WIDTH / 2, 0, FIELD_HEIGHT / 2, 0]
         self.last_pose_update_time = 0
-        self.output_stream = MjpegStream(8090)
+
+        s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+        s.connect(("8.8.8.8", 80))
+
+        ip_address = s.getsockname()[0]
+        # self.output_stream = MjpegStream(IP_ADDRESS=ip_address, HTTP_PORT=4201)
 
         image_processing.initalizeAllRefTargets()
 
     def parse_frame(self, results):
         # distance_results = self.distance_class.parse_frame(frame, results)
         for result in results['bboxes']:
+            label_name = depthai_utils.LABELS[result['label']]
+
+            if label_name == 'power_cell':
+                continue
+
             self.has_targets = True
 
             try:
-                label_name = depthai_utils.LABELS[result['label']]
                 tracked_feature = results['featuredata'][result['id']]
 
                 ppm = LANDMARKS[label_name]['width'] / (result['x_max'] - result['x_min'])
@@ -110,8 +117,8 @@ class Main:
         if len(results) == 0:
             self.has_targets = False
 
-        self.nt_client.smartdashboard.putBoolean("has_targets", self.has_targets)
-        self.nt_client.smartdashboard.putNumberArray("robot_pose", pose3d_to_field2d(self.robot_pose3d))
+        # self.nt_client.smartdashboard.putBoolean("has_targets", self.has_targets)
+        # self.nt_client.smartdashboard.putNumberArray("robot_pose", pose3d_to_field2d(self.robot_pose3d))
 
         return results
 
@@ -121,7 +128,7 @@ class Main:
             for results in depthai_utils.capture():
                 self.parse_frame(results)
 
-                self.output_stream.sendFrame(results['frame'])
+                # self.output_stream.sendFrame(results['frame'])
 
         finally:
             # depthai_utils.del_pipeline()
@@ -144,8 +151,9 @@ class MainDebug(Main):
         # distance_results = super().parse_frame(frame, results)
 
         for result in results['bboxes']:
-            if depthai_utils.LABELS[result['label']] != 'red_upper_power_port' and \
-                    depthai_utils.LABELS[result['label']] != 'blue_upper_power_port':
+            label_name = depthai_utils.LABELS[result['label']]
+
+            if label_name == 'power_cell':
                 continue
 
             if 'featuredata' not in results:
@@ -165,7 +173,7 @@ class MainDebug(Main):
                 right_points_2d = np.array([kp.pt for kp in tracked_feature['right_keypoints']])
 
                 if np.shape(left_points_2d)[0] < 4:
-                    log.debug("Not enough points for solvePNP ({})".format(len(left_points_2d) ))
+                    log.info("Not enough points for solvePNP ({})".format(len(left_points_2d) ))
                     continue
 
                 triangulated_points_4d = cv2.triangulatePoints(OAK_L_PARAMS['l_projection'], OAK_L_PARAMS['r_projection'], left_points_2d.T * ppm, right_points_2d.T * ppm)

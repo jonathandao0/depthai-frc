@@ -50,8 +50,6 @@ def create_pipeline(model_name):
     xoutPassthroughFrameRight = pipeline.createXLinkOut()
     xoutTrackedFeaturesRight = pipeline.createXLinkOut()
     xinTrackedFeaturesConfig = pipeline.createXLinkIn()
-    disparityOut = pipeline.createXLinkOut()
-    depthOut = pipeline.createXLinkOut()
 
     # Properties
     camRgb.setPreviewSize(NN_IMG_SIZE, NN_IMG_SIZE)
@@ -64,8 +62,6 @@ def create_pipeline(model_name):
     xoutPassthroughFrameRight.setStreamName("passthroughFrameRight")
     xoutTrackedFeaturesRight.setStreamName("trackedFeaturesRight")
     xinTrackedFeaturesConfig.setStreamName("trackedFeaturesConfig")
-    disparityOut.setStreamName('disparity')
-    depthOut.setStreamName('depth')
 
     monoLeft.setResolution(dai.MonoCameraProperties.SensorResolution.THE_720_P)
     monoLeft.setBoardSocket(dai.CameraBoardSocket.LEFT)
@@ -128,11 +124,8 @@ def create_pipeline(model_name):
     camRgb.preview.link(spatialDetectionNetwork.input)
 
     spatialDetectionNetwork.out.link(xoutNN.input)
-    stereo.disparity.link(disparityOut.input)
     stereo.depth.link(spatialDetectionNetwork.inputDepth)
-    spatialDetectionNetwork.passthroughDepth.link(depthOut.input)
 
-    disparityMultiplier = 255 / stereo.getMaxDisparity()
     log.info("Pipeline created.")
 
     return pipeline, LABELS
@@ -142,8 +135,6 @@ def capture():
     with dai.Device(pipeline) as device:
         previewQueue = device.getOutputQueue(name="rgb", maxSize=4, blocking=False)
         detectionNNQueue = device.getOutputQueue(name="detections", maxSize=4, blocking=False)
-        disparityQueue = device.getOutputQueue(name="disparity", maxSize=4, blocking=False)
-        depthQueue = device.getOutputQueue(name="depth", maxSize=4, blocking=False)
 
         passthroughImageLeftQueue = device.getOutputQueue("passthroughFrameLeft", 8, False)
         outputFeaturesLeftQueue = device.getOutputQueue("trackedFeaturesLeft", 8, False)
@@ -161,30 +152,18 @@ def capture():
             results = {}
             frame = previewQueue.get().getCvFrame()
             inDet = detectionNNQueue.tryGet()
-            inDisparity = disparityQueue.tryGet()
-            inDepth = depthQueue.tryGet()
 
             detections = []
             if inDet is not None:
                 detections = inDet.detections
 
-            disparityFrame = np.array([])
-            if inDisparity is not None:
-                # Flip disparity frame, normalize it and apply color map for better visualization
-                disparityFrame = inDisparity.getCvFrame()
-                disparityFrame = cv2.flip(disparityFrame, 1)
-                disparityFrame = (disparityFrame * disparityMultiplier).astype(np.uint8)
-                disparityFrame = cv2.applyColorMap(disparityFrame, cv2.COLORMAP_JET)
-
-            depth_map = np.array([])
-            if inDepth is not None:
-                depth_map = inDepth.getCvFrame().astype(np.uint16)
-
             bboxes = []
-            featuredata = {}
             height = frame.shape[0]
             width  = frame.shape[1]
             for detection in detections:
+                if LABELS[detection.label] == 'power_cell':
+                    continue
+
                 data = {
                     'id': uuid.uuid4(),
                     'label': detection.label,
@@ -265,7 +244,6 @@ def capture():
 
             results['frame'] = frame
             results['bboxes'] = bboxes
-            results['disparityFrame'] = disparityFrame
 
             yield results
 
