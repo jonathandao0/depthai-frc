@@ -1,3 +1,4 @@
+import logging
 import math
 
 import cv2
@@ -9,9 +10,12 @@ from common.field_constants import LANDMARKS
 sift = cv2.SIFT_create()
 SIFT_PARAMS = {}
 
+log = logging.getLogger(__name__)
+
 
 def initalizeAllRefTargets():
-    for landmark, params in LANDMARKS.items():
+    landmarks = ['red_upper_power_port', 'red_loading_bay', 'blue_upper_power_port', 'blue_loading_bay']
+    for landmark in landmarks:
         try:
             img_path = "../resources/images/{}.jpg".format(landmark)
             image, keypoints, descriptors = createRefImg(img_path)
@@ -22,7 +26,8 @@ def initalizeAllRefTargets():
                 # '3D_points': points3D,
                 'descriptors': descriptors
             }
-        except Exception:
+        except Exception as e:
+            log.error("Couldn't generate sift params for {}: {}".format(landmark, e))
             pass
 
 
@@ -43,7 +48,7 @@ def createRefImg(img_path):
                                       blockSize=blockSize, gradientSize=gradientSize,
                                       useHarrisDetector=useHarrisDetector, k=k)
 
-    keypoints = [cv2.KeyPoint(x=f[0][0], y=f[0][1], _size=20) for f in corners]
+    keypoints = [cv2.KeyPoint(x=f[0][0], y=f[0][1], size=20) for f in corners]
     img_kp, img_des = sift.compute(src_img, keypoints)
 
     radius = 4

@@ -110,12 +110,12 @@ def matchStereoToRefImage(trackedFeaturesLeft, leftFrame, trackedFeaturesRight, 
     right_good_kp = []
 
     for feature in trackedFeaturesLeft:
-        left_keypoints.append(cv2.KeyPoint(x=feature.position.x, y=feature.position.y, _size=20))
+        left_keypoints.append(cv2.KeyPoint(x=feature.position.x, y=feature.position.y, size=20))
 
     left_kp, left_des = sift.compute(leftFrame, left_keypoints)
 
     for feature in trackedFeaturesRight:
-        right_keypoints.append(cv2.KeyPoint(x=feature.position.x, y=feature.position.y, _size=20))
+        right_keypoints.append(cv2.KeyPoint(x=feature.position.x, y=feature.position.y, size=20))
 
     right_kp, right_des = sift.compute(rightFrame, right_keypoints)
 

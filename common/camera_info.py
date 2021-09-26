@@ -3,7 +3,6 @@ import json
 import cv2
 import numpy as np
 
-
 OAK_L_CALIBRATION_JSON = open('../resources/14442C10218CCCD200.json')
 OAK_L_CALIBRATION_DATA = json.load(OAK_L_CALIBRATION_JSON)
 
@@ -32,3 +31,12 @@ OAK_L_PARAMS = {
     'l_projection': L_Projection,
     'r_projection': R_Projection
 }
+# https://towardsdatascience.com/estimating-a-homography-matrix-522c70ec4b2c
+CR_Translation = np.array(list(OAK_L_CAMERA_LEFT['extrinsics']['translation'].values())).T / 100 # Convert cm to m
+CR_Rotation = np.array(list(OAK_L_CAMERA_RIGHT['extrinsics']['rotationMatrix'])).T
+
+H_CR = np.matmul(R_INTRINSIC, np.concatenate((CR_Rotation[:, 0:2], CR_Translation.reshape(3, 1)), axis=1))
+
+RL_Rotation = LR_Rotation.T
+RL_Translation = LR_Translation * -1
+H_LR = np.matmul(L_INTRINSIC, np.concatenate((RL_Rotation[:, 0:2], RL_Translation.reshape(3, 1)), axis=1))
