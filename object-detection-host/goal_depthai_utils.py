@@ -78,7 +78,7 @@ def create_pipeline(model_name):
     camRgb.video.link(edgeDetectorRgb.inputImage)
     # edgeDetectorRgb.outputImage.link(xoutEdgeRgb.input)
     edgeDetectorRgb.outputImage.link(edgeManip.inputImage)
-    edgeManip.out.link(edgeNN.input)
+    edgeManip.out.link(xoutEdge.input)
     xinEdgeCfg.out.link(edgeDetectorRgb.inputConfig)
 
     log.info("Pipeline created.")

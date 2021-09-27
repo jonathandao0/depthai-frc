@@ -13,7 +13,7 @@ import target_detection
 
 from common.mjpeg_stream import MjpegStream
 from networktables.util import NetworkTables
-from utils import FPSHandler
+from common.utils import FPSHandler
 
 parser = argparse.ArgumentParser()
 parser.add_argument('-d', dest='debug', action="store_true", default=False, help='Start in Debug Mode')
@@ -60,7 +60,7 @@ class Main:
         self.oak_1_stream = MjpegStream(IP_ADDRESS=ip_address, HTTP_PORT=port1)
         self.oak_2_stream = MjpegStream(IP_ADDRESS=ip_address, HTTP_PORT=port2)
 
-    def parse_goal_frame(self, frame, bboxes, edgeFrame):
+    def parse_goal_frame(self, edgeFrame, bboxes):
         valid_labels = ['red_upper_power_port', 'blue_upper_power_port']
 
         nt_tab = self.device_list['OAK-1']['nt_tab']
@@ -128,6 +128,8 @@ class Main:
 
         self.oak_2_stream.sendFrame(frame)
 
+        return frame, bboxes
+
     def init_networktables(self):
         NetworkTables.startClientTeam(4201)
 
@@ -156,8 +158,8 @@ class Main:
 
             if found_1:
                 self.device_list['OAK-1']['nt_tab'].putString("OAK-1 Stream", self.device_list['OAK-1']['stream_address'])
-                for frame, bboxes, edgeFrame in goal_depthai_utils.capture(device_info_1):
-                    self.parse_goal_frame(frame, bboxes, edgeFrame)
+                for edgeFrame, bboxes in goal_depthai_utils.capture(device_info_1):
+                    self.parse_goal_frame(edgeFrame, bboxes)
 
             found_2, device_info_2 = dai.Device.getDeviceByMxId(self.device_list['OAK-2']['id'])
             self.device_list['OAK-2']['nt_tab'].putBoolean("OAK-2 Status", found_2)
@@ -209,7 +211,7 @@ class MainDebug(Main):
             raise StopIteration()
 
     def parse_object_frame(self, frame, bboxes):
-        super().parse_object_frame(frame, bboxes)
+        frame, bboxes = super().parse_object_frame(frame, bboxes)
 
         for bbox in bboxes:
             cv2.putText(frame, "id: {}".format(bbox['id']), (bbox['x_min'], bbox['y_min'] + 30), cv2.FONT_HERSHEY_TRIPLEX, 0.5, (255, 255, 255))
