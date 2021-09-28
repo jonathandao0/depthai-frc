@@ -188,8 +188,11 @@ class MainDebug(Main):
             if target_label not in valid_labels:
                 continue
 
-            target_x = bbox['target_x'] if bbox['target_x'] is not None else 0
-            angle_offset = bbox['angle_offset'] if bbox['angle_offset'] is not None else 0
+            if 'target_x' not in bbox:
+                continue
+
+            target_x = bbox['target_x']
+            angle_offset = bbox['angle_offset']
 
             cv2.rectangle(frame, (bbox['x_min'], bbox['y_min']), (bbox['x_max'], bbox['y_max']), (0, 255, 0), 2)
             cv2.putText(frame, "x: {}".format(round(target_x, 2)), (bbox['x_min'], bbox['y_min'] + 30),
