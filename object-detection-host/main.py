@@ -76,7 +76,7 @@ class Main:
                 log.error("Error: Could not find target contour")
                 continue
 
-            angle_offset = (target_x - (goal_depthai_utils.NN_IMG_SIZE / 2.0)) * 68.7938003540039 / 1080
+            angle_offset = ((goal_depthai_utils.NN_IMG_SIZE / 2.0) - target_x) * 68.7938003540039 / 1080
 
             if abs(angle_offset) > 30:
                 log.info("Invalid angle offset. Setting it to 0")
