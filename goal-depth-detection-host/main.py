@@ -5,9 +5,9 @@ import cv2
 import depthai as dai
 import socket
 
-import depthai_utils
+from pipelines import goal_edge_depth_detection
 import logging
-import target_detection
+import target_finder
 
 from common.mjpeg_stream import MjpegStream
 from networktables.util import NetworkTables
@@ -42,7 +42,7 @@ class Main:
             'nt_tab': NetworkTables.getTable("OAK-D_Goal")
         }}
 
-        self.object_pipeline, self.labels = depthai_utils.create_pipeline("infiniteRecharge2021")
+        self.object_pipeline, self.labels = goal_edge_depth_detection.create_pipeline("infiniteRecharge2021")
 
         self.oak_d_stream = MjpegStream(IP_ADDRESS=ip_address, HTTP_PORT=port)
         self.fps = FPSHandler()
@@ -57,13 +57,13 @@ class Main:
             if target_label not in valid_labels:
                 continue
 
-            edgeFrame, target_x, target_y = target_detection.find_largest_contour(edgeFrame, bbox)
+            edgeFrame, target_x, target_y = target_finder.find_largest_contour(edgeFrame, bbox)
 
             if target_x == -999 or target_y == -999:
                 log.error("Error: Could not find target contour")
                 continue
 
-            angle_offset = (target_x - (depthai_utils.NN_IMG_SIZE / 2.0)) * 68.7938003540039 / 1080
+            angle_offset = (target_x - (goal_edge_depth_detection.NN_IMG_SIZE / 2.0)) * 68.7938003540039 / 1080
 
             if abs(angle_offset) > 30:
                 log.info("Invalid angle offset. Setting it to 0")
@@ -116,7 +116,7 @@ class Main:
 
             if found:
                 self.device_list['OAK-D_Goal']['nt_tab'].putString("OAK-D_Goal Stream", self.device_list['OAK-D_Goal']['stream_address'])
-                for frame, bboxes in depthai_utils.capture(device_info):
+                for frame, bboxes in goal_edge_depth_detection.capture(device_info):
                     self.parse_goal_frame(frame, bboxes)
                     self.fps.next_iter()
                     log.debug("FPS: {}".format(self.fps.fps()))

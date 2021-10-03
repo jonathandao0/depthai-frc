@@ -7,8 +7,7 @@ import cv2
 import depthai as dai
 import socket
 
-import goal_depthai_utils
-import object_depthai_utils
+from pipelines import object_tracker_detection, goal_edge_detection
 import logging
 import target_detection
 
@@ -56,8 +55,8 @@ class Main:
             'nt_tab': NetworkTables.getTable("OAK-2")
         }}
 
-        self.goal_pipeline, self.goal_labels = goal_depthai_utils.create_pipeline("infiniteRecharge2021")
-        self.object_pipeline, self.object_labels = object_depthai_utils.create_pipeline("infiniteRecharge2021")
+        self.goal_pipeline, self.goal_labels = goal_edge_detection.create_pipeline("infiniteRecharge2021")
+        self.object_pipeline, self.object_labels = object_tracker_detection.create_pipeline("infiniteRecharge2021")
 
         self.oak_1_stream = MjpegStream(IP_ADDRESS=ip_address, HTTP_PORT=port1)
         self.oak_2_stream = MjpegStream(IP_ADDRESS=ip_address, HTTP_PORT=port2)
@@ -82,7 +81,7 @@ class Main:
                 log.error("Error: Could not find target contour")
                 continue
 
-            angle_offset = ((goal_depthai_utils.NN_IMG_SIZE / 2.0) - target_x) * 68.7938003540039 / 1080
+            angle_offset = ((goal_edge_detection.NN_IMG_SIZE / 2.0) - target_x) * 68.7938003540039 / 1080
 
             if abs(angle_offset) > 30:
                 log.info("Invalid angle offset. Setting it to 0")
@@ -136,6 +135,10 @@ class Main:
         nt_tab.putNumber("powercells", power_cell_counter)
         nt_tab.putBoolean("indexer_full", power_cell_counter >= 5)
 
+        fps = self.device_list['OAK-2']['fps_handler']
+        fps.next_iter()
+        cv2.putText(frame, "{:.2f}".format(fps.fps()), (0, 20), cv2.FONT_HERSHEY_TRIPLEX, 0.5, (255, 255, 255))
+
         self.oak_2_stream.send_frame(frame)
 
         return frame, bboxes
@@ -182,12 +185,12 @@ class Main:
 
     def run_goal_detection(self, device_info):
         self.device_list['OAK-1']['nt_tab'].putString("OAK-1 Stream", self.device_list['OAK-1']['stream_address'])
-        for edgeFrame, bboxes in goal_depthai_utils.capture(device_info):
+        for edgeFrame, bboxes in goal_edge_detection.capture(device_info):
             self.parse_goal_frame(edgeFrame, bboxes)
 
     def run_object_detection(self, device_info):
         self.device_list['OAK-1']['nt_tab'].putString("OAK-2 Stream", self.device_list['OAK-2']['stream_address'])
-        for frame, bboxes in object_depthai_utils.capture(device_info):
+        for frame, bboxes in object_tracker_detection.capture(device_info):
             self.parse_object_frame(frame, bboxes)
 
 
