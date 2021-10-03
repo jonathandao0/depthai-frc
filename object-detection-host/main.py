@@ -1,6 +1,8 @@
 #!/usr/bin/env python3
 
 import argparse
+import threading
+
 import cv2
 import depthai as dai
 import socket
@@ -165,20 +167,28 @@ class Main:
             self.device_list['OAK-1']['nt_tab'].putBoolean("OAK-1 Status", found_1)
 
             if found_1:
-                self.device_list['OAK-1']['nt_tab'].putString("OAK-1 Stream", self.device_list['OAK-1']['stream_address'])
-                for edgeFrame, bboxes in goal_depthai_utils.capture(device_info_1):
-                    self.parse_goal_frame(edgeFrame, bboxes)
+                th1 = threading.Thread(target=self.run_goal_detection, args=(device_info_1,))
+                th1.start()
 
             found_2, device_info_2 = dai.Device.getDeviceByMxId(self.device_list['OAK-2']['id'])
             self.device_list['OAK-2']['nt_tab'].putBoolean("OAK-2 Status", found_2)
 
             if found_2:
-                self.device_list['OAK-1']['nt_tab'].putString("OAK-2 Stream", self.device_list['OAK-2']['stream_address'])
-                for frame, bboxes in object_depthai_utils.capture(device_info_2):
-                    self.parse_object_frame(frame, bboxes)
+                th2 = threading.Thread(target=self.run_object_detection, args=(device_info_2,))
+                th2.start()
 
         finally:
             log.info("Exiting Program...")
+
+    def run_goal_detection(self, device_info):
+        self.device_list['OAK-1']['nt_tab'].putString("OAK-1 Stream", self.device_list['OAK-1']['stream_address'])
+        for edgeFrame, bboxes in goal_depthai_utils.capture(device_info):
+            self.parse_goal_frame(edgeFrame, bboxes)
+
+    def run_object_detection(self, device_info):
+        self.device_list['OAK-1']['nt_tab'].putString("OAK-2 Stream", self.device_list['OAK-2']['stream_address'])
+        for frame, bboxes in object_depthai_utils.capture(device_info):
+            self.parse_object_frame(frame, bboxes)
 
 
 class MainDebug(Main):
