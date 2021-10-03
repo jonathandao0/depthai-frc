@@ -98,13 +98,6 @@ def capture(device_info):
         configQueue = device.getInputQueue('rgbCfg')
 
         while True:
-            cfg = dai.CameraControl()
-            cfg.setAutoFocusMode(dai.CameraControl.AutoFocusMode.OFF)
-            cfg.setAutoWhiteBalanceMode(dai.CameraControl.AutoWhiteBalanceMode.OFF)
-            cfg.setAutoExposureLock(True)
-            # cfg.setAutoExposureCompensation(-6)
-            configQueue.send(cfg)
-
             # frame = previewQueue.get().getCvFrame()
             inDet = detectionNNQueue.tryGet()
             # edgeFrame = edgeRgbQueue.get().getFrame()
@@ -113,6 +106,13 @@ def capture(device_info):
             detections = []
             if inDet is not None:
                 detections = inDet.detections
+
+                cfg = dai.CameraControl()
+                cfg.setAutoFocusMode(dai.CameraControl.AutoFocusMode.OFF)
+                cfg.setAutoWhiteBalanceMode(dai.CameraControl.AutoWhiteBalanceMode.OFF)
+                cfg.setAutoExposureLock(True)
+                # cfg.setAutoExposureCompensation(-6)
+                configQueue.send(cfg)
 
             bboxes = []
             height = edgeFrame.shape[0]
