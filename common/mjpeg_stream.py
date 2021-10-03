@@ -37,7 +37,7 @@ class VideoStreamHandler(BaseHTTPRequestHandler):
 
                     self.wfile.write(img_str)
                     self.wfile.write(b"\r\n--jpgboundary\r\n")
-                    sleep(0.1)
+                    sleep(0.01)
             except Exception as e:
                 log.debug("MJPEG Exception: {}".format(e))
                 self.flush_headers()
