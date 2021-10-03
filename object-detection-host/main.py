@@ -14,7 +14,6 @@ from common.mjpeg_stream import MjpegStream
 from networktables.util import NetworkTables
 
 from common.utils import FPSHandler
-from flask_stream.stream_app import StreamApp
 
 parser = argparse.ArgumentParser()
 parser.add_argument('-d', dest='debug', action="store_true", default=False, help='Start in Debug Mode')
@@ -98,8 +97,9 @@ class Main:
             bbox['target_y'] = target_y
             bbox['angle_offset'] = angle_offset
 
-        fps = self.device_list['OAK-1']['fps_handler'].fps()
-        cv2.putText(edgeFrame, "{}".format(round(fps)), (0, 20), cv2.FONT_HERSHEY_TRIPLEX, 0.5, (255, 255, 255))
+        fps = self.device_list['OAK-1']['fps_handler']
+        fps.next_iter()
+        cv2.putText(edgeFrame, "{:.2f}".format(fps.fps()), (0, 20), cv2.FONT_HERSHEY_TRIPLEX, 0.5, (255, 255, 255))
 
         self.oak_1_stream.send_frame(edgeFrame)
 
@@ -164,7 +164,6 @@ class Main:
                 self.device_list['OAK-1']['nt_tab'].putString("OAK-1 Stream", self.device_list['OAK-1']['stream_address'])
                 for edgeFrame, bboxes in goal_depthai_utils.capture(device_info_1):
                     self.parse_goal_frame(edgeFrame, bboxes)
-                    self.device_list['OAK-1']['fps_handler'].next_iter()
 
             found_2, device_info_2 = dai.Device.getDeviceByMxId(self.device_list['OAK-2']['id'])
             self.device_list['OAK-2']['nt_tab'].putBoolean("OAK-2 Status", found_2)
