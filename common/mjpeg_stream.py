@@ -21,13 +21,13 @@ class VideoStreamHandler(BaseHTTPRequestHandler):
         self.end_headers()
         while True:
             try:
-                if hasattr(self.server, 'frametosend'):
+                if hasattr(self.server, 'frame_to_send'):
                     # image = Image.fromarray(cv2.cvtColor(self.server.frametosend, cv2.COLOR_BGR2RGB))
                     # stream_file = BytesIO()
                     # image.save(stream_file, 'JPEG')
                     self.wfile.write("--jpgboundary".encode())
 
-                    img_str = cv2.imencode('.jpg', self.server.frametosend)[1].tostring()
+                    img_str = cv2.imencode('.jpg', self.server.frame_to_send)[1].tostring()
 
                     self.send_header('Content-type', 'image/jpeg')
                     # self.send_header('Content-length', str(stream_file.getbuffer().nbytes))
@@ -59,7 +59,7 @@ class MjpegStream:
         th.daemon = True
         th.start()
 
-    def sendFrame(self, frame):
-        self.server_HTTP.frametosend = frame
+    def send_frame(self, frame):
+        self.server_HTTP.frame_to_send = frame
 
 
