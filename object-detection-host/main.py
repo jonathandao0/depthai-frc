@@ -65,6 +65,10 @@ class Main:
 
         nt_tab = self.device_list['OAK-1']['nt_tab']
 
+        if len(bboxes) == 0:
+            nt_tab.putString("target_label", "None")
+            nt_tab.putNumber("tv", 0)
+
         for bbox in bboxes:
             target_label = self.goal_labels[bbox['label']]
             if target_label not in valid_labels:
