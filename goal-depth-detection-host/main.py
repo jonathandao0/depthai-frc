@@ -52,6 +52,10 @@ class Main:
 
         nt_tab = self.device_list['OAK-D_Goal']['nt_tab']
 
+        if len(bboxes) == 0:
+            nt_tab.putString("target_label", "None")
+            nt_tab.putNumber("tv", 0)
+
         for bbox in bboxes:
             target_label = self.labels[bbox['label']]
             if target_label not in valid_labels:
@@ -75,6 +79,7 @@ class Main:
 
             nt_tab.putString("target_label", target_label)
             nt_tab.putNumber("tx", angle_offset)
+            nt_tab.putNumber("tz", bbox['depth_z'])
 
             cv2.rectangle(edgeFrame, (bbox['x_min'], bbox['y_min']), (bbox['x_max'], bbox['y_max']), (255, 255, 255), 2)
 
@@ -84,7 +89,10 @@ class Main:
             bbox['target_y'] = target_y
             bbox['angle_offset'] = angle_offset
 
-        self.oak_d_stream.sendFrame(edgeFrame)
+        self.fps.next_iter()
+        cv2.putText(edgeFrame, "{:.2f}".format(self.fps.fps()), (0, 20), cv2.FONT_HERSHEY_TRIPLEX, 0.5, (255, 255, 255))
+
+        self.oak_d_stream.send_frame(edgeFrame)
 
         return edgeFrame, bboxes
 
@@ -118,8 +126,6 @@ class Main:
                 self.device_list['OAK-D_Goal']['nt_tab'].putString("OAK-D_Goal Stream", self.device_list['OAK-D_Goal']['stream_address'])
                 for frame, bboxes in goal_edge_depth_detection.capture(device_info):
                     self.parse_goal_frame(frame, bboxes)
-                    self.fps.next_iter()
-                    log.debug("FPS: {}".format(self.fps.fps()))
 
         finally:
             log.info("Exiting Program...")
@@ -140,8 +146,8 @@ class MainDebug(Main):
             if target_label not in valid_labels:
                 continue
 
-            target_x = bbox['target_x'] if bbox['target_x'] is not None else 0
-            angle_offset = bbox['angle_offset'] if bbox['angle_offset'] is not None else 0
+            target_x = bbox['target_x'] if 'target_x' in bbox else 0
+            angle_offset = bbox['angle_offset'] if 'angle_offset' in bbox else 0
 
             cv2.putText(edgeFrame, "x: {}".format(round(target_x, 2)), (bbox['x_min'], bbox['y_min'] + 30),
                         cv2.FONT_HERSHEY_TRIPLEX, 0.5, (255, 255, 255))

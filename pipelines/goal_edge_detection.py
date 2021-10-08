@@ -23,16 +23,16 @@ def create_pipeline(model_name):
     edgeManip = pipeline.createImageManip()
 
     # xoutRgb = pipeline.createXLinkOut()
-    rgbControl = pipeline.createXLinkIn()
-    xinRgb = pipeline.createXLinkIn()
+    # rgbControl = pipeline.createXLinkIn()
+    # xinRgb = pipeline.createXLinkIn()
     xoutNN = pipeline.createXLinkOut()
     xoutEdgeRgb = pipeline.createXLinkOut()
     xoutEdge = pipeline.createXLinkOut()
     xinEdgeCfg = pipeline.createXLinkIn()
 
     # xoutRgb.setStreamName("rgb")
-    xinRgb.setStreamName("rgbCfg")
-    rgbControl.setStreamName('rgbControl')
+    # xinRgb.setStreamName("rgbCfg")
+    # rgbControl.setStreamName('rgbControl')
     xoutNN.setStreamName("detections")
     xoutEdgeRgb.setStreamName("edgeRgb")
     xinEdgeCfg.setStreamName("edgeCfg")
@@ -71,8 +71,8 @@ def create_pipeline(model_name):
     camRgb.preview.link(detectionNetwork.input)
     # detectionNetwork.passthrough.link(xoutRgb.input)
     # camRgb.preview.link(xoutRgb.input)
-    rgbControl.out.link(camRgb.inputControl)
-    xinRgb.out.link(camRgb.inputConfig)
+    # rgbControl.out.link(camRgb.inputControl)
+    # xinRgb.out.link(camRgb.inputConfig)
     detectionNetwork.out.link(xoutNN.input)
 
     camRgb.video.link(edgeDetectorRgb.inputImage)
@@ -92,12 +92,19 @@ def capture(device_info):
         detectionNNQueue = device.getOutputQueue(name="detections", maxSize=4, blocking=False)
         # edgeRgbQueue = device.getOutputQueue("edgeRgb", 8, False)
         edgeQueue = device.getOutputQueue("edge", 8, False)
-        edgeCfgQueue = device.getInputQueue("edgeCfg")
+        # edgeCfgQueue = device.getInputQueue("edgeCfg")
 
         # controlQueue = device.getInputQueue('rgbControl')
-        configQueue = device.getInputQueue('rgbCfg')
+        # configQueue = device.getInputQueue('rgbCfg')
 
         while True:
+            # cfg = dai.CameraControl()
+            # cfg.setAutoFocusMode(dai.CameraControl.AutoFocusMode.OFF)
+            # cfg.setAutoWhiteBalanceMode(dai.CameraControl.AutoWhiteBalanceMode.OFF)
+            # cfg.setAutoExposureLock(True)
+            # # cfg.setAutoExposureCompensation(-6)
+            # configQueue.send(cfg)
+
             # frame = previewQueue.get().getCvFrame()
             inDet = detectionNNQueue.tryGet()
             # edgeFrame = edgeRgbQueue.get().getFrame()
@@ -107,12 +114,6 @@ def capture(device_info):
             if inDet is not None:
                 detections = inDet.detections
 
-                cfg = dai.CameraControl()
-                cfg.setAutoFocusMode(dai.CameraControl.AutoFocusMode.OFF)
-                cfg.setAutoWhiteBalanceMode(dai.CameraControl.AutoWhiteBalanceMode.OFF)
-                cfg.setAutoExposureLock(True)
-                # cfg.setAutoExposureCompensation(-6)
-                configQueue.send(cfg)
 
             bboxes = []
             height = edgeFrame.shape[0]

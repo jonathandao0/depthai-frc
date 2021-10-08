@@ -212,8 +212,8 @@ class MainDebug(Main):
             if 'target_x' not in bbox:
                 continue
 
-            target_x = bbox['target_x']
-            angle_offset = bbox['angle_offset']
+            target_x = bbox['target_x'] if 'target_x' in bbox else 0
+            angle_offset = bbox['angle_offset'] if 'angle_offset' in bbox else 0
 
             cv2.rectangle(frame, (bbox['x_min'], bbox['y_min']), (bbox['x_max'], bbox['y_max']), (0, 255, 0), 2)
             cv2.putText(frame, "x: {}".format(round(target_x, 2)), (bbox['x_min'], bbox['y_min'] + 30),

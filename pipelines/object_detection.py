@@ -82,8 +82,8 @@ def capture(device_info):
                 detections = inDet.detections
 
             bboxes = []
-            height = edgeFrame.shape[0]
-            width  = edgeFrame.shape[1]
+            height = frame.shape[0]
+            width  = frame.shape[1]
             for detection in detections:
                 bboxes.append({
                     'id': uuid.uuid4(),

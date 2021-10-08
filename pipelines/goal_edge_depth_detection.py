@@ -47,7 +47,7 @@ def create_pipeline(model_name):
     camRgb.setResolution(dai.ColorCameraProperties.SensorResolution.THE_1080_P)
     camRgb.setInterleaved(False)
     camRgb.setColorOrder(dai.ColorCameraProperties.ColorOrder.BGR)
-    camRgb.setFps(30) # 60 FPS is possible, but NN can't keep up
+    camRgb.setFps(30)
 
     edgeDetectorRgb.setMaxOutputFrameSize(camRgb.getVideoWidth() * camRgb.getVideoHeight())
     edgeManip.initialConfig.setResize(NN_IMG_SIZE, NN_IMG_SIZE)
@@ -138,7 +138,7 @@ def capture(device_info):
 
             bboxes = []
             height = edgeFrame.shape[0]
-            width = edgeFrame.shape[1]
+            width  = edgeFrame.shape[1]
             for detection in detections:
                 bboxes.append({
                     'id': uuid.uuid4(),
