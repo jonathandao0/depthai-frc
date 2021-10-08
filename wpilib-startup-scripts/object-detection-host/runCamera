@@ -5,4 +5,4 @@ sleep 5
 export PYTHONUNBUFFERED=1
 export PYTHONPATH=/home/pi/depthai-frc
 cd /home/pi/depthai-frc/
-exec /usr/bin/python3 target-detection-host/main.py
+exec /usr/bin/python3 object-detection-host/main.py
