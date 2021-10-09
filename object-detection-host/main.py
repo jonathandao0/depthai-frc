@@ -59,7 +59,7 @@ class Main:
         self.goal_pipeline, self.goal_labels = goal_edge_detection.create_pipeline("infiniteRecharge2021")
         self.object_pipeline, self.object_labels = object_tracker_detection.create_pipeline("infiniteRecharge2021")
 
-        self.oak_1_stream = MjpegStream(IP_ADDRESS=ip_address, HTTP_PORT=port1)
+        self.oak_1_stream = MjpegStream(IP_ADDRESS=ip_address, HTTP_PORT=port1, colorspace='BW')
         self.oak_2_stream = MjpegStream(IP_ADDRESS=ip_address, HTTP_PORT=port2)
 
     def parse_goal_frame(self, edgeFrame, bboxes):

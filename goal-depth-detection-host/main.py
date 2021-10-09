@@ -44,7 +44,7 @@ class Main:
 
         self.object_pipeline, self.labels = goal_edge_depth_detection.create_pipeline("infiniteRecharge2021")
 
-        self.oak_d_stream = MjpegStream(IP_ADDRESS=ip_address, HTTP_PORT=port)
+        self.oak_d_stream = MjpegStream(IP_ADDRESS=ip_address, HTTP_PORT=port, colorspace='BW')
         self.fps = FPSHandler()
 
     def parse_goal_frame(self, edgeFrame, bboxes):
