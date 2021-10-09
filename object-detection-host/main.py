@@ -2,6 +2,7 @@
 
 import argparse
 import threading
+from time import sleep
 
 import cv2
 import depthai as dai
