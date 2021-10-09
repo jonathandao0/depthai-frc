@@ -55,39 +55,41 @@ class Main:
         if len(bboxes) == 0:
             nt_tab.putString("target_label", "None")
             nt_tab.putNumber("tv", 0)
+        else:
+            for bbox in bboxes:
+                target_label = self.labels[bbox['label']]
+                if target_label not in valid_labels:
+                    continue
 
-        for bbox in bboxes:
-            target_label = self.labels[bbox['label']]
-            if target_label not in valid_labels:
-                continue
+                edgeFrame, target_x, target_y = target_finder.find_largest_contour(edgeFrame, bbox)
 
-            edgeFrame, target_x, target_y = target_finder.find_largest_contour(edgeFrame, bbox)
+                if target_x == -999 or target_y == -999:
+                    log.error("Error: Could not find target contour")
+                    continue
 
-            if target_x == -999 or target_y == -999:
-                log.error("Error: Could not find target contour")
-                continue
+                angle_offset = (target_x - (goal_edge_depth_detection.NN_IMG_SIZE / 2.0)) * 68.7938003540039 / 1080
 
-            angle_offset = (target_x - (goal_edge_depth_detection.NN_IMG_SIZE / 2.0)) * 68.7938003540039 / 1080
+                if abs(angle_offset) > 30:
+                    log.info("Invalid angle offset. Setting it to 0")
+                    nt_tab.putNumber("tv", 0)
+                    angle_offset = 0
+                else:
+                    log.info("Found target '{}'\tX Angle Offset: {}".format(target_label, angle_offset))
+                    nt_tab.putNumber("tv", 1)
 
-            if abs(angle_offset) > 30:
-                log.info("Invalid angle offset. Setting it to 0")
-                nt_tab.putNumber("tv", 0)
-                angle_offset = 0
-            else:
-                log.info("Found target '{}'\tX Angle Offset: {}".format(target_label, angle_offset))
-                nt_tab.putNumber("tv", 1)
+                nt_tab.putString("target_label", target_label)
+                nt_tab.putNumber("tx", angle_offset)
+                nt_tab.putNumber("tz", bbox['depth_z'])
 
-            nt_tab.putString("target_label", target_label)
-            nt_tab.putNumber("tx", angle_offset)
-            nt_tab.putNumber("tz", bbox['depth_z'])
+                cv2.rectangle(edgeFrame, (bbox['x_min'], bbox['y_min']), (bbox['x_max'], bbox['y_max']),
+                              (255, 255, 255), 2)
 
-            cv2.rectangle(edgeFrame, (bbox['x_min'], bbox['y_min']), (bbox['x_max'], bbox['y_max']), (255, 255, 255), 2)
+                cv2.circle(edgeFrame, (int(round(target_x, 0)), int(round(target_y, 0))), radius=5, color=(128, 128, 128),
+                           thickness=-1)
 
-            cv2.circle(edgeFrame, (int(round(target_x, 0)), int(round(target_y, 0))), radius=5, color=(128, 128, 128), thickness=-1)
-
-            bbox['target_x'] = target_x
-            bbox['target_y'] = target_y
-            bbox['angle_offset'] = angle_offset
+                bbox['target_x'] = target_x
+                bbox['target_y'] = target_y
+                bbox['angle_offset'] = angle_offset
 
         self.fps.next_iter()
         cv2.putText(edgeFrame, "{:.2f}".format(self.fps.fps()), (0, 20), cv2.FONT_HERSHEY_TRIPLEX, 0.5, (255, 255, 255))
