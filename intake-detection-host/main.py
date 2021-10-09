@@ -41,7 +41,7 @@ class Main:
 
         self.device_list = {"OAK-1": {
             'name': "OAK-1",
-            'id': "14442C10218CCCD200",
+            'id': "14442C10C14F47D700",
             # 'id': "14442C1011043ED700",
             'fps_handler': FPSHandler(),
             'stream_address': "{}:{}".format(ip_address, port1),
