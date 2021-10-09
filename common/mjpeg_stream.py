@@ -30,7 +30,7 @@ class VideoStreamHandler(BaseHTTPRequestHandler):
                     # stream_file = BytesIO()
                     # image.save(stream_file, 'JPEG')
                     self.wfile.write("--jpgboundary".encode())
-                    img_str = simplejpeg.encode_jpeg(self.server.frame_to_send, quality=QUALITY, fastdct=True)
+                    img_str = simplejpeg.encode_jpeg(self.server.frame_to_send, quality=QUALITY, colorspace='BGR', fastdct=True)
                     # img_str = cv2.imencode('.jpg', self.server.frame_to_send)[1].tostring()
 
                     self.send_header('Content-type', 'image/jpeg')
