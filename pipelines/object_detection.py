@@ -52,12 +52,6 @@ def create_pipeline(model_name):
     detectionNetwork.setNumInferenceThreads(2)
     detectionNetwork.input.setBlocking(False)
 
-    objectTracker.setDetectionLabelsToTrack([3])  # track only power cells
-    # possible tracking types: ZERO_TERM_COLOR_HISTOGRAM, ZERO_TERM_IMAGELESS
-    objectTracker.setTrackerType(dai.TrackerType.ZERO_TERM_COLOR_HISTOGRAM)
-    # take the smallest ID when new object is tracked, possible options: SMALLEST_ID, UNIQUE_ID
-    objectTracker.setTrackerIdAssigmentPolicy(dai.TrackerIdAssigmentPolicy.UNIQUE_ID)
-
     # Linking
     camRgb.preview.link(detectionNetwork.input)
     camRgb.preview.link(xoutRgb.input)
@@ -90,11 +84,12 @@ def capture(device_info):
                     'label': detection.label,
                     'confidence': detection.confidence,
                     'x_min': int(detection.xmin * width),
-                    'x_mid': int((detection.xmax - detection.xmin) * width),
+                    'x_mid': int(((detection.xmax - detection.xmin) / 2 + detection.xmin) * width),
                     'x_max': int(detection.xmax * width),
                     'y_min': int(detection.ymin * height),
-                    'y_mid': int((detection.ymax - detection.ymin) * height),
+                    'y_mid': int(((detection.ymax - detection.ymin) / 2 + detection.ymin) * height),
                     'y_max': int(detection.ymax * height),
+                    'size': ((detection.ymax - detection.ymin) * height) * ((detection.xmax - detection.xmin) * width)
                 })
 
             yield frame, bboxes

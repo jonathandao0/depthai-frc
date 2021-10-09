@@ -106,11 +106,12 @@ def capture(device_info):
                     'status': track.status,
                     # 'confidence': track.confidence,
                     'x_min': int(roi.topLeft().x),
-                    'x_mid': int(roi.bottomRight().x - roi.topLeft().x),
+                    'x_mid': int((roi.bottomRight().x - roi.topLeft().x) / 2 + roi.topLeft().x),
                     'x_max': int(roi.bottomRight().x),
-                    'y_min': int(roi.bottomRight().y - roi.topLeft().y),
-                    'y_mid': int(roi.topLeft().y),
-                    'y_max': int(roi.bottomRight().y)
+                    'y_min': int(roi.topLeft().y),
+                    'y_mid': int((roi.bottomRight().y - roi.topLeft().y) / 2 + roi.topLeft().y),
+                    'y_max': int(roi.bottomRight().y),
+                    'size': (roi.bottomRight().x - roi.topLeft().x) * (roi.bottomRight().y - roi.topLeft().y)
                 })
 
             yield frame, bboxes
