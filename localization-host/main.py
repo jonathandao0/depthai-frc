@@ -249,6 +249,7 @@ class MainDebug(Main):
 
 
 if __name__ == '__main__':
+    log.info("Starting localization-host")
     if args.debug:
         log.info("Setting up debug run...")
         MainDebug().run()

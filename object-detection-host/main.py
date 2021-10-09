@@ -166,6 +166,7 @@ class Main:
     def run(self):
         log.info("Setup complete, parsing frames...")
 
+        threadlist = []
         try:
             found_1, device_info_1 = dai.Device.getDeviceByMxId(self.device_list['OAK-1']['id'])
             self.device_list['OAK-1']['nt_tab'].putBoolean("OAK-1 Status", found_1)
@@ -173,6 +174,7 @@ class Main:
             if found_1:
                 th1 = threading.Thread(target=self.run_goal_detection, args=(device_info_1,))
                 th1.start()
+                threadlist.append(th1)
 
             found_2, device_info_2 = dai.Device.getDeviceByMxId(self.device_list['OAK-2']['id'])
             self.device_list['OAK-2']['nt_tab'].putBoolean("OAK-2 Status", found_2)
@@ -180,7 +182,13 @@ class Main:
             if found_2:
                 th2 = threading.Thread(target=self.run_object_detection, args=(device_info_2,))
                 th2.start()
+                threadlist.append(th2)
 
+            while True:
+                for t in threadlist:
+                    if not t.is_alive():
+                        break
+                sleep(10)
         finally:
             log.info("Exiting Program...")
 
@@ -251,6 +259,7 @@ class MainDebug(Main):
 
 
 if __name__ == '__main__':
+    log.info("Starting object-detection-host")
     if args.debug:
         MainDebug().run()
     else:

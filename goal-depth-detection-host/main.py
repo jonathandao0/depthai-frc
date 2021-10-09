@@ -173,6 +173,7 @@ class MainDebug(Main):
 
 
 if __name__ == '__main__':
+    log.info("Starting goal-depth-detection-host")
     if args.debug:
         MainDebug().run()
     else:
