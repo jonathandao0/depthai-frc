@@ -1,0 +1,8 @@
+#!/bin/sh
+### TYPE: upload-python
+echo "Waiting 5 seconds..."
+sleep 5
+export PYTHONUNBUFFERED=1
+export PYTHONPATH=/home/pi/depthai-frc
+cd /home/pi/depthai-frc/
+exec /usr/bin/python3 goal-depth-detection-host/main.py
