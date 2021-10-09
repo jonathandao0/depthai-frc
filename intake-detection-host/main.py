@@ -24,6 +24,7 @@ log = logging.getLogger(__name__)
 
 
 class Main:
+    power_cell_counter = 0
 
     def __init__(self):
         log.info("Connected Devices:")
@@ -92,6 +93,7 @@ class Main:
         fps = self.device_list['OAK-1']['fps_handler']
         fps.next_iter()
         cv2.putText(frame, "{:.2f}".format(fps.fps()), (0, 20), cv2.FONT_HERSHEY_TRIPLEX, 0.5, (255, 255, 255))
+        cv2.putText(frame, "{}".format(self.power_cell_counter), (0, NN_IMG_SIZE - 20), cv2.FONT_HERSHEY_TRIPLEX, 2, (0, 255, 0))
 
         self.oak_1_stream.send_frame(frame)
 
@@ -101,26 +103,26 @@ class Main:
         valid_labels = ['power_cell']
 
         nt_tab = self.device_list['OAK-2']['nt_tab']
-        power_cell_counter = 0
+        self.power_cell_counter = 0
         for bbox in bboxes:
             target_label = self.object_labels[bbox['label']]
 
             if target_label not in valid_labels:
                 continue
 
-            power_cell_counter += 1
+            self.power_cell_counter += 1
 
         box_color = (0, 150, 150)
-        if power_cell_counter >= 5:
+        if self.power_cell_counter >= 5:
             box_color = (0, 255, 0)
-        elif power_cell_counter < 3:
+        elif self.power_cell_counter < 3:
             box_color = (0, 0, 255)
 
         for bbox in bboxes:
             cv2.rectangle(frame, (bbox['x_min'], bbox['y_min']), (bbox['x_max'], bbox['y_max']), box_color, 2)
 
-        nt_tab.putNumber("powercells", power_cell_counter)
-        nt_tab.putBoolean("indexer_full", power_cell_counter >= 5)
+        nt_tab.putNumber("powercells", self.power_cell_counter)
+        nt_tab.putBoolean("indexer_full", self.power_cell_counter >= 5)
 
         width = int(frame.shape[1] * 60 / 100)
         height = int(frame.shape[0] * 60 / 100)
