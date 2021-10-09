@@ -121,9 +121,10 @@ class Main:
 
         nt_tab.putNumber("powercells", power_cell_counter)
         nt_tab.putBoolean("indexer_full", power_cell_counter >= 5)
+
         width = int(frame.shape[1] * 60 / 100)
         height = int(frame.shape[0] * 60 / 100)
-        cv2.resize(frame, (width, height), interpolation=cv2.INTER_LINEAR)
+        frame = cv2.resize(frame, (width, height), interpolation=cv2.INTER_LINEAR)
 
         fps = self.device_list['OAK-2']['fps_handler']
         fps.next_iter()
