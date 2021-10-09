@@ -32,7 +32,7 @@ def create_pipeline(model_name):
     camRgb.setResolution(dai.ColorCameraProperties.SensorResolution.THE_1080_P)
     camRgb.setInterleaved(False)
     camRgb.setColorOrder(dai.ColorCameraProperties.ColorOrder.BGR)
-    camRgb.setFps(60)
+    camRgb.setFps(30)
 
     model_dir = Path(__file__).parent.parent / Path(f"resources/nn/") / model_name
     blob_path = model_dir / Path(model_name).with_suffix(f".blob")
