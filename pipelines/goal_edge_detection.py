@@ -22,7 +22,7 @@ def create_pipeline(model_name):
     edgeDetectorRgb = pipeline.createEdgeDetector()
     edgeManip = pipeline.createImageManip()
 
-    # xoutRgb = pipeline.createXLinkOut()
+    xoutRgb = pipeline.createXLinkOut()
     # rgbControl = pipeline.createXLinkIn()
     # xinRgb = pipeline.createXLinkIn()
     xoutNN = pipeline.createXLinkOut()
@@ -30,7 +30,7 @@ def create_pipeline(model_name):
     xoutEdge = pipeline.createXLinkOut()
     xinEdgeCfg = pipeline.createXLinkIn()
 
-    # xoutRgb.setStreamName("rgb")
+    xoutRgb.setStreamName("rgb")
     # xinRgb.setStreamName("rgbCfg")
     # rgbControl.setStreamName('rgbControl')
     xoutNN.setStreamName("detections")
@@ -70,7 +70,7 @@ def create_pipeline(model_name):
     # Linking
     camRgb.preview.link(detectionNetwork.input)
     # detectionNetwork.passthrough.link(xoutRgb.input)
-    # camRgb.preview.link(xoutRgb.input)
+    camRgb.preview.link(xoutRgb.input)
     # rgbControl.out.link(camRgb.inputControl)
     # xinRgb.out.link(camRgb.inputConfig)
     detectionNetwork.out.link(xoutNN.input)
@@ -88,7 +88,7 @@ def create_pipeline(model_name):
 
 def capture(device_info):
     with dai.Device(pipeline, device_info) as device:
-        # previewQueue = device.getOutputQueue(name="rgb", maxSize=4, blocking=False)
+        previewQueue = device.getOutputQueue(name="rgb", maxSize=4, blocking=False)
         detectionNNQueue = device.getOutputQueue(name="detections", maxSize=4, blocking=False)
         # edgeRgbQueue = device.getOutputQueue("edgeRgb", 8, False)
         edgeQueue = device.getOutputQueue("edge", 8, False)
@@ -105,7 +105,7 @@ def capture(device_info):
             # # cfg.setAutoExposureCompensation(-6)
             # configQueue.send(cfg)
 
-            # frame = previewQueue.get().getCvFrame()
+            frame = previewQueue.get().getCvFrame()
             inDet = detectionNNQueue.tryGet()
             # edgeFrame = edgeRgbQueue.get().getFrame()
             edgeFrame = edgeQueue.get().getFrame()
@@ -131,7 +131,7 @@ def capture(device_info):
                     'y_max': int(detection.ymax * height)
                 })
 
-            yield edgeFrame, bboxes
+            yield frame, edgeFrame, bboxes
 
 
 def del_pipeline():

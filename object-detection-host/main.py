@@ -63,7 +63,7 @@ class Main:
         self.oak_1_stream = MjpegStream(IP_ADDRESS=ip_address, HTTP_PORT=port1, colorspace='BW')
         self.oak_2_stream = MjpegStream(IP_ADDRESS=ip_address, HTTP_PORT=port2)
 
-    def parse_goal_frame(self, edgeFrame, bboxes):
+    def parse_goal_frame(self, frame, edgeFrame, bboxes):
         valid_labels = ['red_upper_power_port', 'blue_upper_power_port']
 
         nt_tab = self.device_list['OAK-1']['nt_tab']
@@ -110,7 +110,7 @@ class Main:
 
         self.oak_1_stream.send_frame(edgeFrame)
 
-        return edgeFrame, bboxes
+        return frame, edgeFrame, bboxes
 
     def parse_object_frame(self, frame, bboxes):
         valid_labels = ['power_cell']
@@ -195,8 +195,8 @@ class Main:
 
     def run_goal_detection(self, device_info):
         self.device_list['OAK-1']['nt_tab'].putString("OAK-1 Stream", self.device_list['OAK-1']['stream_address'])
-        for edgeFrame, bboxes in goal_edge_detection.capture(device_info):
-            self.parse_goal_frame(edgeFrame, bboxes)
+        for frame, edgeFrame, bboxes in goal_edge_detection.capture(device_info):
+            self.parse_goal_frame(frame, edgeFrame, bboxes)
 
     def run_object_detection(self, device_info):
         self.device_list['OAK-1']['nt_tab'].putString("OAK-2 Stream", self.device_list['OAK-2']['stream_address'])
@@ -209,8 +209,8 @@ class MainDebug(Main):
     def __init__(self):
         super().__init__()
 
-    def parse_goal_frame(self, frame, bboxes):
-        edgeFrame, bboxes = super().parse_goal_frame(frame, bboxes)
+    def parse_goal_frame(self, frame, edgeFrame, bboxes):
+        frame, edgeFrame, bboxes = super().parse_goal_frame(frame, edgeFrame, bboxes)
         valid_labels = ['red_upper_power_port', 'blue_upper_power_port']
 
         for bbox in bboxes:
@@ -238,6 +238,7 @@ class MainDebug(Main):
                         cv2.FONT_HERSHEY_TRIPLEX, 0.5, (255, 255, 255))
 
         cv2.imshow("OAK-1 Edge", edgeFrame)
+        cv2.imshow("OAK-1", frame)
 
         key = cv2.waitKey(1)
 

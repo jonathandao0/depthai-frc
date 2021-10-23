@@ -47,7 +47,7 @@ class Main:
         self.oak_d_stream = MjpegStream(IP_ADDRESS=ip_address, HTTP_PORT=port, colorspace='BW')
         self.fps = FPSHandler()
 
-    def parse_goal_frame(self, edgeFrame, bboxes):
+    def parse_goal_frame(self, frame, edgeFrame, bboxes):
         valid_labels = ['red_upper_power_port', 'blue_upper_power_port']
 
         nt_tab = self.device_list['OAK-D_Goal']['nt_tab']
@@ -96,7 +96,7 @@ class Main:
 
         self.oak_d_stream.send_frame(edgeFrame)
 
-        return edgeFrame, bboxes
+        return frame, edgeFrame, bboxes
 
     def init_networktables(self):
         NetworkTables.startClientTeam(4201)
@@ -126,8 +126,8 @@ class Main:
 
             if found:
                 self.device_list['OAK-D_Goal']['nt_tab'].putString("OAK-D_Goal Stream", self.device_list['OAK-D_Goal']['stream_address'])
-                for frame, bboxes in goal_edge_depth_detection.capture(device_info):
-                    self.parse_goal_frame(frame, bboxes)
+                for frame, edgeFrame, bboxes in goal_edge_depth_detection.capture(device_info):
+                    self.parse_goal_frame(frame, edgeFrame, bboxes)
 
         finally:
             log.info("Exiting Program...")
@@ -138,8 +138,8 @@ class MainDebug(Main):
     def __init__(self):
         super().__init__()
 
-    def parse_goal_frame(self, frame, bboxes):
-        edgeFrame, bboxes = super().parse_goal_frame(frame, bboxes)
+    def parse_goal_frame(self, frame, edgeFrame, bboxes):
+        frame, edgeFrame, bboxes = super().parse_goal_frame(frame, edgeFrame, bboxes)
         valid_labels = ['red_upper_power_port', 'blue_upper_power_port']
 
         for bbox in bboxes:
@@ -165,6 +165,7 @@ class MainDebug(Main):
                         cv2.FONT_HERSHEY_TRIPLEX, 0.5, (255, 255, 255))
 
         cv2.imshow("OAK-D Edge", edgeFrame)
+        cv2.imshow("OAK-D", frame)
 
         key = cv2.waitKey(1)
 
