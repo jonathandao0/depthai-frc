@@ -128,7 +128,8 @@ def capture(device_info):
                     'x_max': int(detection.xmax * width),
                     'y_min': int(detection.ymin * height),
                     'y_mid': int(((detection.ymax - detection.ymin) / 2 + detection.ymin) * height),
-                    'y_max': int(detection.ymax * height)
+                    'y_max': int(detection.ymax * height),
+                    'size': ((detection.ymax - detection.ymin) * height) * ((detection.xmax - detection.xmin) * width)
                 })
 
             yield frame, edgeFrame, bboxes

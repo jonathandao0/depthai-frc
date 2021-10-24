@@ -8,8 +8,9 @@ import cv2
 import depthai as dai
 import socket
 
+from common import target_finder
 from common.config import NN_IMG_SIZE
-from pipelines import object_tracker_detection, goal_edge_detection
+from pipelines import object_tracker_detection, object_edge_detection
 import logging
 import target_detection
 
@@ -57,7 +58,7 @@ class Main:
             'nt_tab': NetworkTables.getTable("OAK-2")
         }}
 
-        self.goal_pipeline, self.goal_labels = goal_edge_detection.create_pipeline("infiniteRecharge2021")
+        self.goal_pipeline, self.goal_labels = object_edge_detection.create_pipeline("infiniteRecharge2021")
         self.object_pipeline, self.object_labels = object_tracker_detection.create_pipeline("infiniteRecharge2021")
 
         self.oak_1_stream = MjpegStream(IP_ADDRESS=ip_address, HTTP_PORT=port1, colorspace='BW')
@@ -77,7 +78,7 @@ class Main:
             if target_label not in valid_labels:
                 continue
 
-            edgeFrame, target_x, target_y = target_detection.find_largest_contour(edgeFrame, bbox)
+            edgeFrame, target_x, target_y = target_finder.find_largest_contour(edgeFrame, bbox)
 
             if target_x == -999 or target_y == -999:
                 log.error("Error: Could not find target contour")
@@ -195,7 +196,7 @@ class Main:
 
     def run_goal_detection(self, device_info):
         self.device_list['OAK-1']['nt_tab'].putString("OAK-1 Stream", self.device_list['OAK-1']['stream_address'])
-        for frame, edgeFrame, bboxes in goal_edge_detection.capture(device_info):
+        for frame, edgeFrame, bboxes in object_edge_detection.capture(device_info):
             self.parse_goal_frame(frame, edgeFrame, bboxes)
 
     def run_object_detection(self, device_info):

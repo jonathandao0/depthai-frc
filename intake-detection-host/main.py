@@ -9,8 +9,9 @@ import cv2
 import depthai as dai
 import socket
 
+from common import target_finder
 from common.config import NN_IMG_SIZE
-from pipelines import object_detection, object_tracker_detection
+from pipelines import object_detection, object_tracker_detection, object_edge_detection
 import logging
 
 from common.mjpeg_stream import MjpegStream
@@ -57,13 +58,13 @@ class Main:
             'nt_tab': NetworkTables.getTable("OAK-2_Indexer")
         }}
 
-        self.intake_pipeline, self.intake_labels = object_detection.create_pipeline("infiniteRecharge2021")
+        self.intake_pipeline, self.intake_labels = object_edge_detection.create_pipeline("infiniteRecharge2021")
         self.object_pipeline, self.object_labels = object_tracker_detection.create_pipeline("infiniteRecharge2021")
 
         self.oak_1_stream = MjpegStream(IP_ADDRESS=ip_address, HTTP_PORT=port1)
         self.oak_2_stream = MjpegStream(IP_ADDRESS=ip_address, HTTP_PORT=port2)
 
-    def parse_intake_frame(self, frame, bboxes):
+    def parse_intake_frame(self, frame, edgeFrame, bboxes):
         valid_labels = ['power_cell']
 
         nt_tab = self.device_list['OAK-1']['nt_tab']
@@ -84,7 +85,7 @@ class Main:
             for bbox in filtered_bboxes:
                 angle_offset = ((NN_IMG_SIZE / 2.0) - bbox['x_mid']) * 68.7938003540039 / 1080
 
-                cv2.rectangle(frame, (bbox['x_min'], bbox['y_min']), (bbox['x_max'], bbox['y_max']), (255, 255, 255), 2)
+                cv2.rectangle(edgeFrame, (bbox['x_min'], bbox['y_min']), (bbox['x_max'], bbox['y_max']), (255, 255, 255), 2)
 
                 target_angles.append(angle_offset)
                 bbox['angle_offset'] = angle_offset
@@ -93,12 +94,12 @@ class Main:
 
         fps = self.device_list['OAK-1']['fps_handler']
         fps.next_iter()
-        cv2.putText(frame, "{:.2f}".format(fps.fps()), (0, 20), cv2.FONT_HERSHEY_TRIPLEX, 0.5, (255, 255, 255))
-        cv2.putText(frame, "{}".format(self.power_cell_counter), (0, NN_IMG_SIZE - 20), cv2.FONT_HERSHEY_TRIPLEX, 2, (0, 255, 0))
+        cv2.putText(edgeFrame, "{:.2f}".format(fps.fps()), (0, 20), cv2.FONT_HERSHEY_TRIPLEX, 0.5, (255, 255, 255))
+        cv2.putText(edgeFrame, "{}".format(self.power_cell_counter), (0, NN_IMG_SIZE - 20), cv2.FONT_HERSHEY_TRIPLEX, 2, (0, 255, 0))
 
-        self.oak_1_stream.send_frame(frame)
+        self.oak_1_stream.send_frame(edgeFrame)
 
-        return frame, filtered_bboxes
+        return frame, edgeFrame, filtered_bboxes
 
     def parse_object_frame(self, frame, bboxes):
         valid_labels = ['power_cell']
@@ -187,8 +188,8 @@ class Main:
 
     def run_intake_detection(self, device_info):
         self.device_list['OAK-1']['nt_tab'].putString("OAK-1 Stream", self.device_list['OAK-1']['stream_address'])
-        for edgeFrame, bboxes in object_detection.capture(device_info):
-            self.parse_intake_frame(edgeFrame, bboxes)
+        for frame, edgeFrame, bboxes in object_edge_detection.capture(device_info):
+            self.parse_intake_frame(frame, edgeFrame, bboxes)
 
     def run_object_detection(self, device_info):
         self.device_list['OAK-1']['nt_tab'].putString("OAK-2 Stream", self.device_list['OAK-2']['stream_address'])
@@ -201,8 +202,8 @@ class MainDebug(Main):
     def __init__(self):
         super().__init__()
 
-    def parse_intake_frame(self, frame, bboxes):
-        frame, bboxes = super().parse_intake_frame(frame, bboxes)
+    def parse_intake_frame(self, frame, edgeFrame,  bboxes):
+        frame, edgeFrame, bboxes = super().parse_intake_frame(frame, edgeFrame, bboxes)
 
         for i, bbox in enumerate(bboxes):
             angle_offset = bbox['angle_offset'] if 'angle_offset' in bbox else 0
@@ -221,6 +222,7 @@ class MainDebug(Main):
             cv2.putText(frame, "conf: {}".format(round(bbox['confidence'], 2)), (bbox['x_min'], bbox['y_min'] + 110),
                         cv2.FONT_HERSHEY_TRIPLEX, 0.5, (255, 255, 255))
 
+        cv2.imshow("OAK-1 Intake Edge", edgeFrame)
         cv2.imshow("OAK-1 Intake", frame)
 
         key = cv2.waitKey(1)
