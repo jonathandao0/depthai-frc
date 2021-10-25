@@ -83,7 +83,7 @@ class Main:
 
             target_angles = []
             for bbox in filtered_bboxes:
-                angle_offset = ((NN_IMG_SIZE / 2.0) - bbox['x_mid']) * 68.7938003540039 / 1080
+                angle_offset = (bbox['x_mid'] - (NN_IMG_SIZE / 2.0)) * 68.7938003540039 / 1080
 
                 cv2.rectangle(edgeFrame, (bbox['x_min'], bbox['y_min']), (bbox['x_max'], bbox['y_max']), (255, 255, 255), 2)
 
