@@ -12,7 +12,7 @@ import socket
 from common.config import NN_IMG_SIZE
 from pipelines import goal_edge_depth_detection, object_edge_detection
 import logging
-from common import target_finder
+from common import target_finder, image_processing
 
 from common.mjpeg_stream import MjpegStream
 from networktables.util import NetworkTables
@@ -63,6 +63,8 @@ class Main:
         self.oak_1_stream = MjpegStream(IP_ADDRESS=ip_address, HTTP_PORT=port2, colorspace='BW', QUALITY=50)
 
     def parse_goal_frame(self, frame, edgeFrame, bboxes):
+        edgeFrame = cv2.threshold(frame, 20, 255, cv2.THRESH_TOZERO)[1]
+
         valid_labels = ['red_upper_power_port', 'blue_upper_power_port']
 
         nt_tab = self.device_list['OAK-D_Goal']['nt_tab']
@@ -115,6 +117,8 @@ class Main:
         return frame, edgeFrame, bboxes
 
     def parse_intake_frame(self, frame, edgeFrame, bboxes):
+        edgeFrame = cv2.threshold(frame, 70, 255, cv2.THRESH_TOZERO)[1]
+
         valid_labels = ['power_cell']
 
         nt_tab = self.device_list['OAK-1_Intake']['nt_tab']
