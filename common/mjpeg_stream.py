@@ -25,6 +25,7 @@ class VideoStreamHandler(BaseHTTPRequestHandler):
         global QUALITY
         global COLORSPACE
 
+
         self.send_response(200)
         self.send_header('Content-type', 'multipart/x-mixed-replace; boundary=--jpgboundary')
         self.end_headers()
@@ -32,6 +33,9 @@ class VideoStreamHandler(BaseHTTPRequestHandler):
             try:
                 if hasattr(self.server, 'quality'):
                     QUALITY = self.server.quality
+                    encode_param = [int(cv2.IMWRITE_JPEG_QUALITY), QUALITY]
+                    log.info("QUALITY: {}".format(QUALITY))
+
                 if hasattr(self.server, 'colorspace'):
                     COLORSPACE = self.server.colorspace
 
@@ -42,7 +46,7 @@ class VideoStreamHandler(BaseHTTPRequestHandler):
                     self.wfile.write("--jpgboundary".encode())
 
                     if COLORSPACE=='BW':
-                        img_str = cv2.imencode('.jpg', self.server.frame_to_send)[1].tostring()
+                        img_str = cv2.imencode('.jpg', self.server.frame_to_send, encode_param)[1].tostring()
                     else:
                         img_str = simplejpeg.encode_jpeg(self.server.frame_to_send, quality=QUALITY, colorspace=COLORSPACE, fastdct=True)
 
@@ -68,13 +72,12 @@ class ThreadedHTTPServer(ThreadingMixIn, HTTPServer):
 
 
 class MjpegStream:
-    def __init__(self, IP_ADDRESS=SERVER_IP, HTTP_PORT=8090, quality=20, colorspace='BGR'):
-        global QUALITY
+    def __init__(self, IP_ADDRESS=SERVER_IP, HTTP_PORT=8090, QUALITY=20, colorspace='BGR'):
         # start MJPEG HTTP Server
         log.info("MJPEG Stream starting at {}:{}".format(IP_ADDRESS, HTTP_PORT))
         self.server_HTTP = ThreadedHTTPServer((IP_ADDRESS, HTTP_PORT), VideoStreamHandler)
         cfg = {
-            'quality': quality,
+            'quality': QUALITY,
             'colorspace': colorspace
         }
         self.set_config(cfg)
