@@ -114,3 +114,9 @@ def decomposeYawPitchRoll(R):
         z2 = 0  # around z2-axis
 
     return np.array([[z1], [x], [z2]])
+
+
+def maskImageThreshold(frame, threshold):
+    mask = cv2.threshold(frame, threshold, 255, cv2.THRESH_BINARY)[1]
+
+    return cv2.bitwise_and(frame, mask)
