@@ -49,7 +49,8 @@ class Main:
             'nt_tab': NetworkTables.getTable("OAK-D_Goal")
         }, "OAK-1_Intake": {
             'name': "OAK-1_Intake",
-            'id': "14442C1011043ED700",
+            # 'id': "14442C1011043ED700",
+            'id': "14442C10C14F47D700",
             'fps_handler': FPSHandler(),
             'stream_address': "{}:{}".format(ip_address, port2),
             'nt_tab': NetworkTables.getTable("OAK-1_Intake")
@@ -81,7 +82,7 @@ class Main:
                     log.error("Error: Could not find target contour")
                     continue
 
-                angle_offset = (target_x - (NN_IMG_SIZE / 2.0)) * 68.7938003540039 / 1080
+                angle_offset = (target_x - (NN_IMG_SIZE / 2.0)) * 68.7938003540039 / 1920
 
                 if abs(angle_offset) > 30:
                     log.info("Invalid angle offset. Setting it to 0")
@@ -127,12 +128,13 @@ class Main:
 
         if len(filtered_bboxes) == 0:
             nt_tab.putNumber("tv", 0)
+            nt_tab.putNumberArray("ta", [0])
         else:
             nt_tab.putNumber("tv", 1)
 
             target_angles = []
             for bbox in filtered_bboxes:
-                angle_offset = (bbox['x_mid'] - (NN_IMG_SIZE / 2.0)) * 68.7938003540039 / 1080
+                angle_offset = (bbox['x_mid'] - (NN_IMG_SIZE / 2.0)) * 68.7938003540039 / 1920
 
                 cv2.rectangle(edgeFrame, (bbox['x_min'], bbox['y_min']), (bbox['x_max'], bbox['y_max']), (255, 255, 255), 2)
 

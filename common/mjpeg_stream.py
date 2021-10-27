@@ -4,6 +4,7 @@ import cv2
 import logging
 import threading
 
+from PIL import Image
 from http.server import BaseHTTPRequestHandler, HTTPServer
 from socketserver import ThreadingMixIn
 from time import sleep
@@ -53,7 +54,7 @@ class VideoStreamHandler(BaseHTTPRequestHandler):
 
                     self.wfile.write(img_str)
                     self.wfile.write(b"\r\n--jpgboundary\r\n")
-                    sleep(0.01)
+                    sleep(0.03)
             except Exception as e:
                 log.error("MJPEG Exception: {}".format(e))
                 self.flush_headers()
