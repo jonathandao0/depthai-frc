@@ -59,8 +59,8 @@ class Main:
         self.goal_pipeline, self.goal_labels = goal_edge_depth_detection.create_pipeline("infiniteRecharge2021")
         self.intake_pipeline, self.intake_labels = object_edge_detection.create_pipeline("infiniteRecharge2021")
 
-        self.oak_d_stream = MjpegStream(IP_ADDRESS=ip_address, HTTP_PORT=port1, colorspace='BW', QUALITY=50)
-        self.oak_1_stream = MjpegStream(IP_ADDRESS=ip_address, HTTP_PORT=port2, colorspace='BW', QUALITY=50)
+        self.oak_d_stream = MjpegStream(IP_ADDRESS=ip_address, HTTP_PORT=port1, colorspace='BW', QUALITY=20)
+        self.oak_1_stream = MjpegStream(IP_ADDRESS=ip_address, HTTP_PORT=port2, colorspace='BW', QUALITY=20)
 
     def parse_goal_frame(self, frame, edgeFrame, bboxes):
         edgeFrame = cv2.threshold(frame, 20, 255, cv2.THRESH_TOZERO)[1]
