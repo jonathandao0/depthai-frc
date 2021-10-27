@@ -63,7 +63,7 @@ class Main:
         self.oak_1_stream = MjpegStream(IP_ADDRESS=ip_address, HTTP_PORT=port2, colorspace='BW', QUALITY=20)
 
     def parse_goal_frame(self, frame, edgeFrame, bboxes):
-        edgeFrame = cv2.threshold(frame, 20, 255, cv2.THRESH_TOZERO)[1]
+        edgeFrame = cv2.threshold(edgeFrame, 20, 255, cv2.THRESH_TOZERO)[1]
 
         valid_labels = ['red_upper_power_port', 'blue_upper_power_port']
 
