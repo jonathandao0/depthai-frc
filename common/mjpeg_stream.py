@@ -34,8 +34,6 @@ class VideoStreamHandler(BaseHTTPRequestHandler):
                 if hasattr(self.server, 'quality'):
                     QUALITY = self.server.quality
                     encode_param = [int(cv2.IMWRITE_JPEG_QUALITY), QUALITY]
-                    log.info("QUALITY: {}".format(QUALITY))
-
                 if hasattr(self.server, 'colorspace'):
                     COLORSPACE = self.server.colorspace
 
