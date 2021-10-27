@@ -12,7 +12,7 @@ import socket
 from common.config import NN_IMG_SIZE
 from pipelines import goal_edge_depth_detection, object_edge_detection
 import logging
-from common import target_finder, image_processing
+from common import target_finder
 
 from common.mjpeg_stream import MjpegStream
 from networktables.util import NetworkTables
