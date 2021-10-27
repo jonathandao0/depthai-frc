@@ -117,7 +117,7 @@ class Main:
         return frame, edgeFrame, bboxes
 
     def parse_intake_frame(self, frame, edgeFrame, bboxes):
-        edgeFrame = cv2.threshold(edgeFrame, 100, 255, cv2.THRESH_TOZERO)[1]
+        edgeFrame = cv2.threshold(edgeFrame, 60, 255, cv2.THRESH_TOZERO)[1]
 
         valid_labels = ['power_cell']
 
