@@ -42,11 +42,11 @@ class VideoStreamHandler(BaseHTTPRequestHandler):
                     # stream_file = BytesIO()
                     # image.save(stream_file, 'JPEG')
                     self.wfile.write("--jpgboundary".encode())
-
+                    frame = cv2.resize(self.server.frame_to_send, (320, 320), interpolation=cv2.INTER_AREA)
                     if COLORSPACE=='BW':
-                        img_str = cv2.imencode('.jpg', self.server.frame_to_send, encode_param)[1].tostring()
+                        img_str = cv2.imencode('.jpg', frame, encode_param)[1].tostring()
                     else:
-                        img_str = simplejpeg.encode_jpeg(self.server.frame_to_send, quality=QUALITY, colorspace=COLORSPACE, fastdct=True)
+                        img_str = simplejpeg.encode_jpeg(frame, quality=QUALITY, colorspace=COLORSPACE, fastdct=True)
 
                     self.send_header('Content-type', 'image/jpeg')
                     # self.send_header('Content-length', str(stream_file.getbuffer().nbytes))
