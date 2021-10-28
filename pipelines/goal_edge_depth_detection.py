@@ -130,7 +130,7 @@ def capture(device_info):
             frame = previewQueue.get().getCvFrame()
             inDet = detectionNNQueue.tryGet()
             # edgeFrame = edgeRgbQueue.get().getFrame()
-            edgeFrame = edgeQueue.get().getFrame()
+            edgeFrame = edgeQueue.get().getCvFrame()
 
             detections = []
             if inDet is not None:

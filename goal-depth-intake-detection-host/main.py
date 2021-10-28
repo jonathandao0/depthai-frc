@@ -10,6 +10,7 @@ import depthai as dai
 import socket
 
 from common.config import NN_IMG_SIZE
+from common.cscore_stream import CsCoreStream
 from pipelines import goal_edge_depth_detection, object_edge_detection
 import logging
 from common import target_finder
@@ -43,14 +44,15 @@ class Main:
 
         self.device_list = {"OAK-D_Goal": {
             'name': "OAK-D_Goal",
-            'id': "14442C10218CCCD200",
+            'id': "14442C1091398FD000",
+            # 'id': "14442C10218CCCD200",
             'fps_handler': FPSHandler(),
             'stream_address': "{}:{}".format(ip_address, port1),
             'nt_tab': NetworkTables.getTable("OAK-D_Goal")
         }, "OAK-1_Intake": {
             'name': "OAK-1_Intake",
-            # 'id': "14442C1011043ED700",
-            'id': "14442C10C14F47D700",
+            'id': "14442C1011043ED700",
+            # 'id': "14442C10C14F47D700",
             'fps_handler': FPSHandler(),
             'stream_address': "{}:{}".format(ip_address, port2),
             'nt_tab': NetworkTables.getTable("OAK-1_Intake")
@@ -61,6 +63,8 @@ class Main:
 
         self.oak_d_stream = MjpegStream(IP_ADDRESS=ip_address, HTTP_PORT=port1, colorspace='BW', QUALITY=10)
         self.oak_1_stream = MjpegStream(IP_ADDRESS=ip_address, HTTP_PORT=port2, colorspace='BW', QUALITY=10)
+        # self.oak_d_stream = CsCoreStream(IP_ADDRESS=ip_address, HTTP_PORT=port1, colorspace='BW', QUALITY=10)
+        # self.oak_1_stream = CsCoreStream(IP_ADDRESS=ip_address, HTTP_PORT=port2, colorspace='BW', QUALITY=10)
 
     def parse_goal_frame(self, frame, edgeFrame, bboxes):
         edgeFrame = cv2.threshold(edgeFrame, 20, 255, cv2.THRESH_TOZERO)[1]
