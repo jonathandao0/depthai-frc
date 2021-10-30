@@ -1,7 +1,10 @@
 #!/usr/bin/env python3
+import math
 
 import cv2
 import numpy as np
+
+from common.config import NN_IMG_SIZE
 
 
 def find_largest_contour(edgeFrame, bbox):
@@ -24,6 +27,40 @@ def find_largest_contour(edgeFrame, bbox):
         return edgeFrame, center_x + bbox['x_min'], center_y + bbox['y_min']
     else:
         return edgeFrame, -999, -999
+
+
+def find_largest_hexagon_contour(edgeFrame, bbox):
+    padding = 20
+    y_min = 0 if bbox['y_min'] - padding < 0 else bbox['y_min']
+    y_max = NN_IMG_SIZE if bbox['y_max'] + padding > NN_IMG_SIZE else bbox['y_max']
+    x_min = 0 if bbox['x_min'] - padding < 0 else bbox['x_min']
+    x_max = NN_IMG_SIZE if bbox['x_max'] + padding > NN_IMG_SIZE else bbox['x_max']
+    area = (x_max - x_min) * (y_max - y_min)
+
+    thresh = cv2.threshold(edgeFrame[y_min:y_max, x_min:x_max], 25, 255, cv2.THRESH_BINARY)[1]
+
+    res = cv2.findContours(thresh, cv2.RETR_TREE, cv2.CHAIN_APPROX_SIMPLE)
+    # contours = res[-2]
+    contours = res[0] if len(res) == 2 else res[1]
+    if len(contours) > 0:
+        contours = sorted(contours, key=cv2.contourArea, reverse=True)
+
+        for c in contours:
+            poly = cv2.convexHull(c)
+            peri = cv2.arcLength(poly, True)
+            approx = cv2.approxPolyDP(poly, 0.01 * peri, True)
+            contourArea = cv2.contourArea(poly)
+
+            if len(approx) == 6 and 0.9 > (contourArea / area) > 0.1:
+                cv2.drawContours(edgeFrame[y_min:y_max, x_min:x_max], [c], 0, (255, 255, 255), cv2.FILLED)
+
+                rect = cv2.minAreaRect(c)
+                center, _, _ = rect
+                center_x, center_y = center
+
+                return edgeFrame, center_x + bbox['x_min'], center_y + bbox['y_min']
+
+    return edgeFrame, -999, -999
 
 
 def find_largest_circular_contour(edgeFrame, bbox):

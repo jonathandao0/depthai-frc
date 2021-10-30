@@ -3,6 +3,7 @@
 import argparse
 import operator
 import threading
+import numpy as np
 from time import sleep
 
 import cv2
@@ -67,7 +68,10 @@ class Main:
         # self.oak_1_stream = CsCoreStream(IP_ADDRESS=ip_address, HTTP_PORT=port2, colorspace='BW', QUALITY=10)
 
     def parse_goal_frame(self, frame, edgeFrame, bboxes):
-        edgeFrame = cv2.threshold(edgeFrame, 20, 255, cv2.THRESH_TOZERO)[1]
+        kernel = np.ones((3, 3), np.uint8)
+        edgeFrame = cv2.morphologyEx(edgeFrame, cv2.MORPH_CLOSE, kernel, iterations=1)
+
+        # edgeFrame = cv2.threshold(edgeFrame, 20, 255, cv2.THRESH_TOZERO)[1]
 
         valid_labels = ['red_upper_power_port', 'blue_upper_power_port']
 
@@ -82,7 +86,7 @@ class Main:
                 if target_label not in valid_labels:
                     continue
 
-                edgeFrame, target_x, target_y = target_finder.find_largest_contour(edgeFrame, bbox)
+                edgeFrame, target_x, target_y = target_finder.find_largest_hexagon_contour(edgeFrame, bbox)
 
                 if target_x == -999 or target_y == -999:
                     log.error("Error: Could not find target contour")
