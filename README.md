@@ -1,6 +1,6 @@
 # depthai-frc
 
-A project I developed to implement real-time machine learning vision processing using the OopenCV AI Kit (OAK) devices. This was focused on using a model trained on objects for the 2020/2021 FRC Infinite Recharge game and using the model in several different applications.
+A project I developed to implement real-time machine learning vision processing using the OpenCV AI Kit (OAK) devices and the DepthAI libraries. This was focused on using a model trained on objects for the 2020/2021 FRC Infinite Recharge game in several novel applications.
 
 
 ## Demonstrations and Examples
