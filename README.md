@@ -4,7 +4,7 @@ A project I developed to implement real-time machine learning vision processing 
 
 
 ## Demonstrations and Examples
-Some videos showcasing this system can be found on my YouTube channel [here]().
+Some additional videos showcasing this system can be found on my YouTube channel [here]().
 
 
 ## Paper
