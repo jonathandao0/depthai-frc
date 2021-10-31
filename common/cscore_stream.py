@@ -1,9 +1,8 @@
 #!/usr/bin/env python3
 
-import cscore as cs
+# import cscore as cs
 import cv2
 import logging
-import threading
 
 from PIL import Image
 from http.server import BaseHTTPRequestHandler, HTTPServer
@@ -22,7 +21,7 @@ QUALITY = 20
 
 class CsCoreStream:
     def __init__(self, IP_ADDRESS=SERVER_IP, HTTP_PORT=8090, QUALITY=20, colorspace='BGR'):
-        self.camera = cs.CvSource("cvsource", cs.VideoMode.PixelFormat.kMJPEG, 416, 416, 30)
+        # self.camera = cs.CvSource("cvsource", cs.VideoMode.PixelFormat.kMJPEG, 416, 416, 30)
 
         self.cap = cv2.VideoCapture(0)
         self.cap.set(cv2.CAP_PROP_FRAME_WIDTH, 416)

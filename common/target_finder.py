@@ -48,7 +48,7 @@ def find_largest_hexagon_contour(edgeFrame, bbox):
         for c in contours:
             poly = cv2.convexHull(c)
             peri = cv2.arcLength(poly, True)
-            approx = cv2.approxPolyDP(poly, 0.01 * peri, True)
+            approx = cv2.approxPolyDP(poly, 0.03 * peri, True)
             contourArea = cv2.contourArea(poly)
 
             if len(approx) == 6 and 0.9 > (contourArea / area) > 0.1:
