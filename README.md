@@ -3,6 +3,10 @@
 A project I developed to implement real-time machine learning vision processing using the OopenCV AI Kit (OAK) devices. This was focused on using a model trained on objects for the 2020/2021 FRC Infinite Recharge game and using the model in several different applications.
 
 
+## Demonstrations and Examples
+Some videos showcasing this system can be found on my YouTube channel [here]().
+
+
 ## Paper
 A paper detailing this project in more detail can be found [here]().
 
@@ -14,9 +18,6 @@ Discussion on this project can be found [here](https://www.chiefdelphi.com/).
 ## Dataset
 Our dataset can be found on Supervisely [here](https://app.supervise.ly/share-links/k6PE2KAhDvpV8qtXCT1UYiY3MvhLvl7A5Vvkr4CXbIiZOhgt7Gv0q40l78Iqb2dG)
 
-
-## Demonstrations and Examples
-Some videos showcasing this system can be found on my YouTube channel [here]().
 
 ## Hardware
 * [OAK-1](https://store.opencv.ai/products/oak-1)
