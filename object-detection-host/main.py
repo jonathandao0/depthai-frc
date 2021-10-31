@@ -12,7 +12,6 @@ from common import target_finder
 from common.config import NN_IMG_SIZE
 from pipelines import object_tracker_detection, object_edge_detection
 import logging
-import target_detection
 
 from common.mjpeg_stream import MjpegStream
 from networktables.util import NetworkTables
