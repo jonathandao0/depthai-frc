@@ -26,7 +26,7 @@ def create_pipeline(model_name):
     stereo = pipeline.createStereoDepth()
 
     xoutRgb = pipeline.createXLinkOut()
-    # rgbControl = pipeline.createXLinkIn()
+    rgbControl = pipeline.createXLinkIn()
     # xinRgb = pipeline.createXLinkIn()
     xoutNN = pipeline.createXLinkOut()
     xoutEdgeRgb = pipeline.createXLinkOut()
@@ -35,7 +35,7 @@ def create_pipeline(model_name):
 
     xoutRgb.setStreamName("rgb")
     # xinRgb.setStreamName("rgbCfg")
-    # rgbControl.setStreamName('rgbControl')
+    rgbControl.setStreamName('rgbControl')
     xoutNN.setStreamName("detections")
     xoutEdgeRgb.setStreamName("edgeRgb")
     xinEdgeCfg.setStreamName("edgeCfg")
@@ -48,6 +48,7 @@ def create_pipeline(model_name):
     camRgb.setInterleaved(False)
     camRgb.setColorOrder(dai.ColorCameraProperties.ColorOrder.BGR)
     camRgb.setFps(30)
+    camRgb.initialControl.setManualFocus(130)
 
     edgeDetectorRgb.setMaxOutputFrameSize(camRgb.getVideoWidth() * camRgb.getVideoHeight())
     edgeManip.initialConfig.setResize(NN_IMG_SIZE, NN_IMG_SIZE)
@@ -89,7 +90,7 @@ def create_pipeline(model_name):
     camRgb.preview.link(detectionNetwork.input)
     # detectionNetwork.passthrough.link(xoutRgb.input)
     camRgb.preview.link(xoutRgb.input)
-    # rgbControl.out.link(camRgb.inputControl)
+    rgbControl.out.link(camRgb.inputControl)
     # xinRgb.out.link(camRgb.inputConfig)
     detectionNetwork.out.link(xoutNN.input)
 
@@ -116,11 +117,11 @@ def capture(device_info):
         edgeQueue = device.getOutputQueue("edge", 8, False)
         edgeCfgQueue = device.getInputQueue("edgeCfg")
 
-        # controlQueue = device.getInputQueue('rgbControl')
+        controlQueue = device.getInputQueue('rgbControl')
         # configQueue = device.getInputQueue('rgbCfg')
 
         while True:
-            # cfg = dai.CameraControl()
+            cfg = dai.CameraControl()
             # cfg.setAutoFocusMode(dai.CameraControl.AutoFocusMode.OFF)
             # cfg.setAutoWhiteBalanceMode(dai.CameraControl.AutoWhiteBalanceMode.OFF)
             # cfg.setAutoExposureLock(True)

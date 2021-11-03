@@ -37,7 +37,7 @@ def find_largest_hexagon_contour(edgeFrame, bbox):
     x_max = NN_IMG_SIZE if bbox['x_max'] + padding > NN_IMG_SIZE else bbox['x_max']
     area = (x_max - x_min) * (y_max - y_min)
 
-    thresh = cv2.threshold(edgeFrame[y_min:y_max, x_min:x_max], 25, 255, cv2.THRESH_BINARY)[1]
+    thresh = cv2.threshold(edgeFrame[y_min:y_max, x_min:x_max], 50, 255, cv2.THRESH_BINARY)[1]
 
     res = cv2.findContours(thresh, cv2.RETR_TREE, cv2.CHAIN_APPROX_SIMPLE)
     # contours = res[-2]

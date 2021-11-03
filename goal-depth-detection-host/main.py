@@ -29,10 +29,14 @@ class Main:
 
         self.init_networktables()
 
-        s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
-        s.connect(("8.8.8.8", 80))
+        try:
+            s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+            s.connect(("8.8.8.8", 80))
 
-        ip_address = s.getsockname()[0]
+            ip_address = s.getsockname()[0]
+        except:
+            ip_address = 'localhost'
+
         port = 4201
 
         self.device_list = {"OAK-D_Goal": {

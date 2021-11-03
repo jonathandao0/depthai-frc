@@ -40,10 +40,14 @@ class Main:
         self.robot_pose3d = [FIELD_WIDTH / 2, 0, FIELD_HEIGHT / 2, 0]
         self.last_pose_update_time = 0
 
-        s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
-        s.connect(("8.8.8.8", 80))
+        try:
+            s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+            s.connect(("8.8.8.8", 80))
 
-        ip_address = s.getsockname()[0]
+            ip_address = s.getsockname()[0]
+        except:
+            ip_address = 'localhost'
+
         # self.output_stream = MjpegStream(IP_ADDRESS=ip_address, HTTP_PORT=4201)
 
         image_processing.initalizeAllRefTargets()
