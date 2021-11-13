@@ -37,7 +37,7 @@ class Main:
         except:
             ip_address = 'localhost'
 
-        port = 4201
+        port = 5801
 
         self.device_list = {"OAK-D_Goal": {
             'name': "OAK-D_Goal",
