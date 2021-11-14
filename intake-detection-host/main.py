@@ -65,8 +65,8 @@ class Main:
         self.intake_pipeline, self.intake_labels = object_edge_detection.create_pipeline("infiniteRecharge2021")
         self.object_pipeline, self.object_labels = object_tracker_detection.create_pipeline("infiniteRecharge2021")
 
-        self.oak_1_stream = MjpegStream(IP_ADDRESS=ip_address, HTTP_PORT=port1)
-        self.oak_2_stream = MjpegStream(IP_ADDRESS=ip_address, HTTP_PORT=port2)
+        self.oak_1_stream = MjpegStream(IP_ADDRESS=ip_address, HTTP_PORT=port1, colorspace='BW', QUALITY=95)
+        self.oak_2_stream = MjpegStream(IP_ADDRESS=ip_address, HTTP_PORT=port2, colorspace='BGR', QUALITY=95)
 
     def parse_intake_frame(self, frame, edgeFrame, bboxes):
         valid_labels = ['power_cell']
