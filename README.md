@@ -4,19 +4,19 @@ A project I developed to implement real-time machine learning vision processing 
 
 
 ## Demonstrations and Examples
-Some additional videos showcasing this system can be found on my YouTube channel [here]().
+Some additional videos showcasing this system can be found on my YouTube channel [here](https://www.youtube.com/playlist?list=PL-u6YqWBjzGDDwki4SJB1vznNY2D4T7-X).
 
 
 ## Paper
-A paper detailing this project in more detail can be found [here]().
+A paper detailing this project in more detail can be found [here](https://drive.google.com/file/d/1iY_uFfW2r6J18a6d2Xy052RyVWWbrevg/view?usp=sharing).
 
 
 ## Chief Dephi Thread
-Discussion on this project can be found [here](https://www.chiefdelphi.com/).
+Discussion on this project can be found [here](https://www.chiefdelphi.com/t/paper-real-time-vision-processing-with-convolutional-neural-networks-using-opencv-s-ai-kit/397556).
 
 
 ## Dataset
-Our dataset can be found on Supervisely [here](https://app.supervise.ly/share-links/k6PE2KAhDvpV8qtXCT1UYiY3MvhLvl7A5Vvkr4CXbIiZOhgt7Gv0q40l78Iqb2dG)
+Our dataset can be found on Supervisely [here](https://app.supervise.ly/share-links/wly6NF3pQyosTLEt01v4wFHn55Bo86RJEotRaCT8nPMpTYnVyiHQ0rfwW63yMag6)
 
 
 ## Hardware
@@ -53,8 +53,8 @@ The project is structure with various folders/packages. Here is a summary of wha
 
 
 ## Special Thanks
-* **Declan Freeman-Gleason (pietroglyph)** of Team 4915: His [post](https://www.chiefdelphi.com/t/what-impressive-things-did-you-do-in-software-this-year/382245/48) on how he implemented full-field localization is what inspired me to look into implementing robot localization myself.
 * **Yashas Ambati, Gabe Hart, Kevin Jaget, Marshall Massengill, and Team 900**: A lot of this work would not have been possible without the use of their open-source dataset. A link to their Zebravision 7.0 whitepaper can be found [here](https://team900.org/blog/ZebraVision-7.0/).
 * **Austin and Team 971**: The localization implementation of using SIFT was heavily inspired by their summary of what they did for their 2020/2021 robot.
+* **Declan Freeman-Gleason (pietroglyph)** of Team 4915: His [post](https://www.chiefdelphi.com/t/what-impressive-things-did-you-do-in-software-this-year/382245/48) on how he implemented full-field localization is what inspired me to look into implementing robot localization myself.
 * **Peter Johnson, the WPILib Team, and the Robotpy Team**: The massive improvements to the WPILib library over the last few years has pretty much enabled me to pursue problems like this due to being able to leverage a lot of the framework they've developed over the years.
 * **Luxonis**: The OAK devices and DepthAI libraries have been incredible at making this system possible from both cost and simplicity.
